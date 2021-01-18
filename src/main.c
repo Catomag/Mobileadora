@@ -4,6 +4,7 @@
 
 // Some basic game
 int main() {
+	library_init(10, 8000);
 	Frame* frame = library_frame_create();
 
 	Input text = {
@@ -12,8 +13,8 @@ int main() {
 	};
 
 	Input other = {
-		INPUT_VECTOR,
-		4
+		INPUT_JOYSTICK,
+		2
 	};
 
 	library_frame_input_add(frame, text);
