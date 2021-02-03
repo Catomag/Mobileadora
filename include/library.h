@@ -54,6 +54,7 @@ extern void l_frame_fetch(Frame* frame); // manually asks clients for data, used
 extern void l_frame_print(Frame* frame); // print contents of frame object
 
 extern void l_frame_text_add(Frame* frame, const char* text); // request some text be added to the frame
+extern void l_frame_text_set(Frame* frame, unsigned int index, const char* text); // change the text
 extern void l_frame_input_add(Frame* frame, Input input); // add input to the frame
 
 extern Input l_input_text_create(unsigned short max_chars);

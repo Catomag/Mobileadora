@@ -17,8 +17,8 @@ struct _Frame {
 };
 
 typedef struct {
-	int active; // whether a client is connected or not
 	int socket_fd; // socket and stuff
+	unsigned char active; // whether a client is connected or not
 	void* id; // id should be generated from ip info and stuff, so that when someone rejoins they are put on the same spot
 	Frame* frame; // current frame shown
 	unsigned char* input_data; // current values for each input
@@ -31,7 +31,7 @@ void* l_client_handler(void* data);
 void* l_client_accept_loop(void* data);
 
 extern Client* clients;
-extern pthread_t* client_threads;
+extern pthread_t client_thread;
 extern unsigned int clients_count;
 extern unsigned int clients_size;
 

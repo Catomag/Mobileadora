@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <pthread.h>
 
+#include <poll.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -18,7 +19,7 @@
 static int server_fd;
 
 Client* clients;
-pthread_t* client_threads;
+pthread_t client_thread;
 unsigned int clients_count;
 unsigned int clients_size;
 
@@ -63,7 +64,6 @@ void hash_to_base64(unsigned char* data, char* output) {
 
 // TODO: maybe add support for multiple dataframes
 void* l_client_handler(void* data) {
-	Client* client = (Client*) data;
 	struct timespec delay;
 	delay.tv_nsec = 10 * 1000000; // TODO: remember, 10ms of artificial delay
 	delay.tv_sec = 0;
@@ -73,59 +73,74 @@ void* l_client_handler(void* data) {
 	unsigned char* payload = malloc(sizeof(unsigned char) * payload_size);
 
 	while(server_running) {
-		if(client->active) {
-			// receive dataframe
-			unsigned char header[2];
-			unsigned char mask_key[4];
-			uint64_t payload_length;
-			unsigned char opcode;
+		struct pollfd pollfds[clients_count];
+		for(uint i = 0; i < clients_count; i++) {
+			pollfds[i].fd = clients[i].socket_fd;
+			pollfds[i].events = POLLIN | POLLOUT;
+		}
+		poll(pollfds, clients_count, 10);
 
-			recv(client->socket_fd, &header, 2, 0);
-			payload_length = header[1] & 127;
-			opcode = header[1] & 127;
+		for(uint i = 0; i < clients_count; i++) {
+			if(clients[i].active && (pollfds[i].revents & POLLIN) && (pollfds[i].revents & POLLOUT)) {
+				// receive dataframe
+				unsigned char header[2];
+				unsigned char mask_key[4];
+				uint64_t payload_length;
+				unsigned char opcode;
 
-			printf("Opcode: %x\n", opcode);
-			if(opcode == 0x8) {
-				close(client->socket_fd);
-				clients_count -= 1;
-				client->active = 0;
-				printf("client disconnected\n");
-			}
-			else {
-				switch(payload_length) {
-					case 126:
-						payload_length = 0;
-						recv(client->socket_fd, &payload_length, 2, 0);
-						payload_length = ntohs(payload_length);
-						break;
-					case 127:
-						payload_length = 0;
-						recv(client->socket_fd, &payload_length, 8, 0);
-						payload_length = be64toh(payload_length);
-						break;
+				recv(clients[i].socket_fd, &header, 2, 0);
+				opcode = header[0] & 127;
+				payload_length = header[1] & 127;
+
+				printf("Client: %u\n", i);
+				printf("	Opcode: %x\n", opcode);
+
+				if(opcode == 0x8) {
+					close(clients[i].socket_fd);
+					clients_count -= 1;
+					clients[i].active = 0;
+					printf("	Disconnected\n");
 				}
+				else {
+					switch(payload_length) {
+						case 126:
+							payload_length = 0;
+							recv(clients[i].socket_fd, &payload_length, 2, 0);
+							payload_length = ntohs(payload_length);
+							break;
+						case 127:
+							payload_length = 0;
+							recv(clients[i].socket_fd, &payload_length, 8, 0);
+							payload_length = be64toh(payload_length);
+							break;
+					}
 
-				if(payload_length >= payload_size) {
-					payload_size += payload_length;
-					payload = realloc(payload, payload_size);
+					if(payload_length >= payload_size) {
+						payload_size += payload_length + 1;
+						payload = realloc(payload, payload_size);
+					}
+
+					recv(clients[i].socket_fd, &mask_key, 4, 0);
+					recv(clients[i].socket_fd, payload, payload_length * sizeof(unsigned char), 0);
+
+					for(uint64_t i = 0; i < payload_length; i++)
+						payload[i] = payload[i] ^ mask_key[i % 4];
+
+					payload[payload_length] = '\0';
+					// handle data
+					printf("	Payload: %s\n", payload);
 				}
-
-				recv(client->socket_fd, &mask_key, 4, 0);
-				recv(client->socket_fd, payload, payload_length * sizeof(unsigned char), 0);
-
-				for(uint64_t i = 0; i < payload_length; i++)
-					payload[i] = payload[i] ^ mask_key[i % 4];
-
-				// handle data
-				printf("Payload: %s\n", payload);
 			}
 		}
-
+		
 		// TODO: make sleep time customizable
 		nanosleep(&delay, &remaining); // sleep for 20ms, or CPU will explode
 	}
 
-	close(client->socket_fd);
+	for(int i = 0; i < clients_count; i++)
+		if(clients[i].active)
+			close(clients[i].socket_fd);
+
 	free(payload);
 	return 0;
 }
@@ -216,16 +231,13 @@ void l_init(unsigned int max_clients, unsigned short port) {
 
 	// set up clients
 	clients = (Client*) malloc(max_clients * sizeof(Client));
-	client_threads = (pthread_t*) malloc(max_clients * sizeof(pthread_t));
 
 	bzero(clients, max_clients * sizeof(Client));
 	clients_count = 0;
 	clients_size = max_clients;
 
-	// launch threads
-	for(unsigned int i = 0; i < clients_size; i++) {
-		pthread_create(&client_threads[i], NULL, l_client_handler, &clients[i]);
-	}
+	// launch client handler
+	pthread_create(&client_thread, NULL, l_client_handler, NULL);
 
 	// launch server
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -315,7 +327,7 @@ Frame* l_frame_create(FrameType type, Orientation orientation) {
 void l_frame_destroy(Frame* frame) {
 	free(frame);
 	for(unsigned int i = 0; i < clients_size; i++) {
-		pthread_join(client_threads[i], NULL);
+		pthread_join(client_thread, NULL);
 	}
 }
 
