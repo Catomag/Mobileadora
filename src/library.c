@@ -286,7 +286,7 @@ void l_free() {
 // |------------------------------------------------------------|-------------------------|-------------|
 
 // TODO: remove asserts at compile time
-void l_send(Frame* frame, unsigned int client_index) {
+void l_frame_send(Frame* frame, unsigned int client_index) {
 	assert(frame != NULL);
 	assert(client_index < clients_size);
 	
@@ -312,7 +312,38 @@ void l_send(Frame* frame, unsigned int client_index) {
 	}
 	
 	// send file
-	send(clients[client_index].socket_fd, frame_data, frame_size, SOCK_NONBLOCK);
+	l_send(clients[client_index].socket_fd, frame_data, frame_size, SOCK_NONBLOCK);
+	free(frame);
+}
+
+Frame* l_frame_read(int fd) {
+	unsigned char type;
+	unsigned char orientation;
+	read(fd, &type, 1);
+	read(fd, &orientation, 1);
+
+	unsigned int size;
+	read(fd, &size, 4);
+	size = htobe32(size);
+
+	Frame* frame = malloc(sizeof(Frame) + size);
+	frame->type = type;
+	frame->orientation = orientation;
+
+	frame->input_count = size;
+	frame->input_size = size;
+
+	for(int i = 0; i < size; i++) {
+		unsigned char type;
+		unsigned int size;
+		read(fd, &type, 1);
+		read(fd, &size, sizeof(unsigned int));
+
+		frame->inputs[i].type = type;
+		frame->inputs[i].size = htobe32(size);
+	}
+
+	return frame;
 }
 
 Frame* l_frame_create(FrameType type, Orientation orientation) {

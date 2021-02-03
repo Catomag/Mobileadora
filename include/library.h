@@ -35,7 +35,6 @@ typedef struct {
 extern void l_init(unsigned int max_clients, unsigned short port); // starts server and creates separate thread to handle clients
 extern void l_free(); // stops library and frees allocated resources 
 
-extern void l_send(Frame* frame, unsigned int client_index); // sends frame to client on specified index
 extern void l_default(Frame* frame); // set frame as default
 extern void l_poll(); // retrieves client information and current input information
 
@@ -48,6 +47,7 @@ extern unsigned int l_client_max_count(); // returns number of maximum clients
 extern Frame* l_frame_create(FrameType type, Orientation orientation);
 extern Frame* l_frame_copy(Frame* frame); // create copy of existing frame, copy must be freed with frame_destroy
 extern void l_frame_destroy(Frame* frame);
+extern void l_frame_send(Frame* frame, unsigned int client_index); // sends frame to client on specified index
 
 extern void l_frame_client_count(Frame* frame);
 extern void l_frame_fetch(Frame* frame); // manually asks clients for data, used in static frames
