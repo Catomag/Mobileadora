@@ -128,7 +128,10 @@ void* l_client_handler(void* data) {
 
 					payload[payload_length] = '\0';
 					// handle data
-					printf("	Payload: %s\n", payload);
+					printf("	Payload: ");
+					for(int i = 0; i < payload_length; i++)
+						printf("	%i\n", payload[i]);
+					printf("\n");
 				}
 			}
 		}
@@ -175,8 +178,8 @@ void* l_client_accept_loop(void* data) {
 				close(client_fd);
 			}
 			else if(clients_count >= clients_size) {
-				send(client_fd, "Sorry lad, max clients connected", 32, MSG_NOSIGNAL);
 				printf("reached max clients\n");
+				send(client_fd, "Sorry lad, max clients connected", 32, MSG_NOSIGNAL);
 				close(client_fd);
 			}
 			else {
@@ -216,7 +219,12 @@ void* l_client_accept_loop(void* data) {
 				Client client;
 				client.active = 1; // setting to active will indirectly allow thread to start
 				client.socket_fd = client_fd;
-				clients[clients_count] = client;
+				for(int i = 0; i < clients_size; i++) {
+					if(clients[i].active == 0) {
+						clients[i] = client;
+						break;
+					}
+				}
 
 				clients_count++;
 			}
