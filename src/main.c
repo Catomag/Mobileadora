@@ -8,8 +8,8 @@ int main() {
 	l_init(10, 8000);
 
 	Frame* main_frame = l_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL);
-	l_frame_input_add(main_frame, (Input) { INPUT_JOYSTICK, 2 *  sizeof(float) });
-	l_frame_input_add(main_frame, (Input) { INPUT_TEXT, 20 });
+	l_frame_input_add(main_frame, l_input_joystick_create());
+//	l_send(main_frame, )
 
 	// Contents of first frame
 //	l_frame_text_add(main_frame, "First name:");
