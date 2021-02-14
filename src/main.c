@@ -42,6 +42,7 @@ int main() {
 	
 	// do stuff with data
 	l_frame_print(main_frame);
+	l_send(main_frame, 10);
 
 	// exit
 	sleep(30);

@@ -41,7 +41,10 @@ struct _Input {
 extern void l_init(unsigned int max_clients, unsigned short port); // starts server and creates separate thread to handle clients
 extern void l_free(); // stops library and frees allocated resources 
 
+<<<<<<< HEAD
+=======
 extern void l_default(Frame* frame); // set frame as default
+>>>>>>> c8fddc4c925d47e7ddcfbd0846c995734548b9b3
 extern void l_poll(); // retrieves client information and current input information
 
 extern unsigned int l_client_index_from_id(void* client_id); // returns NULL_CLIENT if id is invalid or client is disconnected

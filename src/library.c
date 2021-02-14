@@ -343,9 +343,15 @@ void l_send(int socket, void* data, unsigned long size) {
 //	1 byte,	   	  1 byte,	   1 byte,			   4 bytes,	 	 1 byte,	  4 bytes,	   5 bytes.	
 // |------------------------------------------------------------|-------------------------|-------------|
 
+<<<<<<< HEAD
 // TODO: option to remove asserts at compile time
 void l_frame_send(Frame* frame, unsigned int client_index) {
 	assert(default_frame != NULL);
+=======
+// TODO: remove asserts at compile time
+void l_frame_send(Frame* frame, unsigned int client_index) {
+	assert(frame != NULL);
+>>>>>>> c8fddc4c925d47e7ddcfbd0846c995734548b9b3
 	assert(client_index < clients_size);
 
 	if(frame == NULL)
@@ -381,11 +387,46 @@ void l_frame_send(Frame* frame, unsigned int client_index) {
 	}
 	
 	// send file
+<<<<<<< HEAD
 	l_send(clients[client_index].socket_fd, frame_data, frame_size );
 }
 
 void l_default(Frame* frame) {
 	default_frame = frame;
+=======
+	l_send(clients[client_index].socket_fd, frame_data, frame_size, SOCK_NONBLOCK);
+	free(frame);
+}
+
+Frame* l_frame_read(int fd) {
+	unsigned char type;
+	unsigned char orientation;
+	read(fd, &type, 1);
+	read(fd, &orientation, 1);
+
+	unsigned int size;
+	read(fd, &size, 4);
+	size = htobe32(size);
+
+	Frame* frame = malloc(sizeof(Frame) + size);
+	frame->type = type;
+	frame->orientation = orientation;
+
+	frame->input_count = size;
+	frame->input_size = size;
+
+	for(int i = 0; i < size; i++) {
+		unsigned char type;
+		unsigned int size;
+		read(fd, &type, 1);
+		read(fd, &size, sizeof(unsigned int));
+
+		frame->inputs[i].type = type;
+		frame->inputs[i].size = htobe32(size);
+	}
+
+	return frame;
+>>>>>>> c8fddc4c925d47e7ddcfbd0846c995734548b9b3
 }
 
 void l_poll() {
