@@ -1,4 +1,8 @@
 #include "../include/library_internal.h"
+#include <stdio.h>
+
+#include <netdb.h>
+#include <assert.h>
 
 // input definitions
 const Input JOYSTICK = {
@@ -41,13 +45,30 @@ Input l_input_joystick_create() {
 }
 
 bool l_input_joystick_get(unsigned int client_index, unsigned char input_index, float* x_value, float* y_value) {
+	if(clients[client_index].input_data == NULL)
+		return 0;
+
 	unsigned char data[JOYSTICK.size];
-	bool res = l_input_get(client_index, INPUT_JOYSTICK, input_index, data);
+//	bool res = l_input_get(client_index, INPUT_JOYSTICK, input_index, data);
+	// TODO: remove this HORRIBLE HACK
+	for(int i = 0; i < JOYSTICK.size; i++)
+		data[i] = clients[client_index].input_data[i];
 
-	short x = data[0];
-	short y = data[2];
-	*x_value = (float) x;
-	*y_value = (float) y;
+	short x = be16toh(data[0]);
+	short y = be16toh(data[2]);
+	*x_value = ((float) x / 0xFFFF) * 2.f;
+	*y_value = ((float) y / 0xFFFF) * 2.f;
 
-	return res;
+	if(*x_value > .99)
+		*x_value = 1;
+	else if(*x_value < -.99)
+		*x_value = -1;
+
+	if(*y_value > .99)
+		*y_value = 1;
+	else if(*y_value < -.99)
+		*y_value = -1;
+
+//	return res;
+	return 1;
 }

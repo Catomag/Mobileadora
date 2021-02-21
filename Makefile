@@ -9,15 +9,10 @@ all: server
 again: clean server
 
 server: $(OBJ)
-	# windows
-	# x86_64-w64-mingw32-gcc -L deps/bin $^ -lOpenAL32 -lopengl32 --static -lglfw3 -lglad -lm -lpthread -o $@
-	# linux (assuming all libraries are installed in the system
-	gcc -W $^ -lpthread -lm -ldl -lcrypto -lssl -o $@
+	clang -W $^ -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
 
 bin/%.o : src/%.c
-	# x86_64-w64-mingw32-gcc $(INCLUDE) $(CFLAGS) -c $< -o $@
-	# linux
-	gcc $(INCLUDE) $(CFLAGS) -c $< -o $@
+	clang $(INCLUDE) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f bin/*.o

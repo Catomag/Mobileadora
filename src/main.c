@@ -1,11 +1,27 @@
 // THIS FILE IS ONLY HERE FOR TESTING PURPOSES
 #include "../include/library.h"
+#include <stdio.h>
 #include <unistd.h>
+#include <raylib.h>
 
+#define PLAYER_COUNT 10
+
+typedef struct {
+	float x;
+	float y;
+	int thicc;
+	Color color;
+} Player;
+
+typedef struct {
+	float x;
+	float y;
+} Pellet;
 
 // Simple form
 int main() {
-	l_init(10, 8000);
+
+	l_init(PLAYER_COUNT, 8000);
 
 	Frame* main_frame = l_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL);
 	l_frame_input_add(main_frame, l_input_joystick_create());
@@ -42,10 +58,103 @@ int main() {
 	
 	// do stuff with data
 	l_frame_print(main_frame);
-	l_send(main_frame, 10);
+	l_frame_default(main_frame);
 
-	// exit
-	sleep(30);
+	InitWindow(600, 600, "testapp");
+	
+
+#define PELLET_COUNT 60
+
+	Player players[PLAYER_COUNT];
+	Pellet pellets[PELLET_COUNT];
+
+	for(int i = 0; i < PELLET_COUNT; i++) {
+		pellets[i].x = rand()%600;
+		pellets[i].y = rand()%600;
+	}
+
+	for(int i = 0; i < PLAYER_COUNT; i++) {
+		players[i].x = rand()%600;
+		players[i].y = rand()%600;
+
+		players[i].thicc = 8;
+		players[i].color = (Color) { rand()%255, rand()%255, rand()%255, 255 };
+	}
+
+	float time = 0;
+	float prev_time = 0;
+	while(!WindowShouldClose()) {
+		time += GetTime() - prev_time;
+		prev_time = GetTime();
+
+		if(time > .008f) {
+			time = 0;
+
+			for(int i = 0; i < PLAYER_COUNT; i++) {
+				if(l_client_active(i)) {
+					// movement
+					float dir_x;
+					float dir_y;
+					if(l_input_joystick_get(i, 0, &dir_x, &dir_y)) {
+						players[i].x += (3.f / players[i].thicc) * 640.f * dir_x * GetFrameTime();
+						players[i].y -= (3.f / players[i].thicc) * 640.f * dir_y * GetFrameTime();
+
+						if(players[i].x < 0)
+							players[i].x = 0;
+						else if(players[i].x > 600)
+							players[i].x = 600;
+
+						if(players[i].y < 0)
+							players[i].y = 0;
+						else if(players[i].y > 600)
+							players[i].y = 600;
+					}
+
+					// eat pelet
+					for(int j = 0; j < PELLET_COUNT; j++) {
+						if( (players[i].x - pellets[j].x) * (players[i].x - pellets[j].x) +
+							(players[i].y - pellets[j].y) * (players[i].y - pellets[j].y) < 9 + (players[i].thicc / 2 + 4) * (players[i].thicc / 2 + 4)) {
+							players[i].thicc += 1;
+							pellets[j].x = rand() % 600;
+							pellets[j].y = rand() % 600;
+						}
+					}
+
+					// player collisions
+
+					for(int j = 0; j < PLAYER_COUNT; j++) {
+						if(l_client_active(j)) {
+							if( (players[i].x - players[j].x) * (players[i].x - players[j].x) +
+								(players[i].y - players[j].y) * (players[i].y - players[j].y) < (players[i].thicc / 2 + 4) * (players[i].thicc / 2 + 4) &&
+								players[i].thicc > players[j].thicc) {
+
+								players[i].thicc += players[j].thicc;
+								players[j].thicc = 8;
+								players[j].x = rand()%600;
+								players[j].y = rand()%600;
+							}
+						}
+					}
+
+					if(players[i].thicc > 30)
+						players[i].thicc -= (rand()%players[i].thicc) / 200;
+				}
+			}
+
+			ClearBackground(BLACK);
+			BeginDrawing();
+
+			for(int i = 0; i < PELLET_COUNT; i++)
+				DrawCircle(pellets[i].x, pellets[i].y, 3, GREEN);
+
+			for(int i = 0; i < PLAYER_COUNT; i++)
+				if(l_client_active(i))
+					DrawCircle(players[i].x, players[i].y, players[i].thicc, players[i].color);
+			EndDrawing();
+		}
+	}
+
+	CloseWindow();
 	l_frame_destroy(main_frame);
-	l_free();
+	printf("this ran\n");
 }

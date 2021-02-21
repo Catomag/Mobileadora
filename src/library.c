@@ -23,8 +23,11 @@ pthread_t client_thread;
 unsigned int clients_count;
 unsigned int clients_size;
 unsigned char* clients_data = NULL;
+unsigned long clients_data_size = 0;
 
 unsigned char server_running = 0;
+
+Frame* default_frame = NULL;
 
 char base64_alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 // output needs to be 28 bytes, data needs to be 20 bytes
@@ -66,7 +69,7 @@ void hash_to_base64(unsigned char* data, char* output) {
 // TODO: maybe add support for multiple dataframes
 void* l_client_handler(void* data) {
 	struct timespec delay;
-	delay.tv_nsec = 10 * 1000000; // TODO: remember, 10ms of artificial delay
+	delay.tv_nsec = 20 * 1000000; // TODO: remember, 20ms of artificial delay
 	delay.tv_sec = 0;
 	struct timespec remaining;
 
@@ -93,8 +96,8 @@ void* l_client_handler(void* data) {
 				opcode = header[0] & 127;
 				payload_length = header[1] & 127;
 
-				printf("Client: %u\n", i);
-				printf("	Opcode: %x\n", opcode);
+//				printf("Client: %u\n", i);
+//				printf("	Opcode: %x\n", opcode);
 
 				if(opcode == 0x8) {
 					close(clients[i].socket_fd);
@@ -124,24 +127,42 @@ void* l_client_handler(void* data) {
 					recv(clients[i].socket_fd, &mask_key, 4, 0);
 					recv(clients[i].socket_fd, payload, payload_length * sizeof(unsigned char), 0);
 
-					for(uint64_t i = 0; i < payload_length; i++)
-						payload[i] = payload[i] ^ mask_key[i % 4];
+					for(uint64_t j = 0; j < payload_length; j++)
+						payload[j] = payload[j] ^ mask_key[j % 4];
 
 					payload[payload_length] = '\0';
 					// handle data
-					printf("	Payload: ");
-					for(int i = 0; i < payload_length; i++)
-						printf("	%i\n", payload[i]);
-					printf("\n");
+//					printf("	Payload: ");
+////					for(int j = 0; j < payload_length; j++)
+////						printf("	%i\n", payload[j]);
+////					printf("\n");
+//
+//					short x = be16toh(payload[2]);
+//					short y = be16toh(payload[4]);
+//					float pitch = ((float) x / 0xFFFF) * 2.f;
+//					float yaw = ((float) y / 0xFFFF) * 2.f;
+//
+//					printf("%f, %f\n\n", pitch, yaw);
 
-					// TODO: decipher payload into distinct elements
-					// 1. Read 1 byte for input type, read 1 byte for input index
-					// 2. Find frame structure for client
-					// 3. Find input index and test if it is valid
-					// 4. Add new input to the client's data thingo
+					unsigned char input_type = payload[0];
+					unsigned char input_index = payload[1];
+					unsigned char current_input_index = 0;
 
-					// TODO: populate clients array with data
-					//clients[i].input_data[]
+//					printf("payload length: %u\n", payload_length);
+//					printf("input size: %u\n", clients[i].frame->input_size);
+
+					//assert(payload_length - 2 == clients[i].frame->input_size);
+
+					for(unsigned int j = 0; j < clients[i].frame->input_count; j++) {
+						if(clients[i].frame->inputs[j].type == input_type) {
+							if(input_index == current_input_index) {
+								for(unsigned int k = 0; k < clients[i].frame->inputs[j].size; k++)
+									clients[i].input_data[k] = payload[2 + k];
+								break;
+							}
+							current_input_index++;
+						}
+					}
 				}
 			}
 		}
@@ -223,16 +244,12 @@ void* l_client_accept_loop(void* data) {
 
 				send(client_fd, response, 129, MSG_NOSIGNAL);
 
-				printf("handshake completed!\n");
-
-				Client client;
-				client.active = 1; // setting to active will indirectly allow thread to start
-				client.socket_fd = client_fd;
 				for(int i = 0; i < clients_size; i++) {
 					if(clients[i].active == 0) {
-						clients[i] = client;
-						if(default_frame != NULL)
-							l_frame_send(default_frame, i);
+						clients[i].active = 1;
+						clients[i].socket_fd = client_fd;
+
+						l_frame_send(clients[i].frame, i);
 						break;
 					}
 				}
@@ -253,6 +270,11 @@ void l_init(unsigned int max_clients, unsigned short port) {
 	clients = (Client*) malloc(max_clients * sizeof(Client));
 
 	bzero(clients, max_clients * sizeof(Client));
+	for(unsigned int i = 0; i < max_clients; i++) {
+		clients[i].frame = NULL;
+		clients[i].input_data = NULL;
+	}
+
 	clients_count = 0;
 	clients_size = max_clients;
 
@@ -343,15 +365,9 @@ void l_send(int socket, void* data, unsigned long size) {
 //	1 byte,	   	  1 byte,	   1 byte,			   4 bytes,	 	 1 byte,	  4 bytes,	   5 bytes.	
 // |------------------------------------------------------------|-------------------------|-------------|
 
-<<<<<<< HEAD
 // TODO: option to remove asserts at compile time
 void l_frame_send(Frame* frame, unsigned int client_index) {
-	assert(default_frame != NULL);
-=======
-// TODO: remove asserts at compile time
-void l_frame_send(Frame* frame, unsigned int client_index) {
-	assert(frame != NULL);
->>>>>>> c8fddc4c925d47e7ddcfbd0846c995734548b9b3
+	assert(frame != NULL || default_frame != NULL);
 	assert(client_index < clients_size);
 
 	if(frame == NULL)
@@ -359,10 +375,12 @@ void l_frame_send(Frame* frame, unsigned int client_index) {
 
 	// assign frame to client
 	// TODO: make sure this doesn't interfere with anything
-	if(clients[client_index].active) {
-		if(clients[client_index].frame->input_size < frame->input_size)
-			clients[client_index].input_data = realloc(clients[client_index].input_data, frame->input_size);
-	}
+	if(clients[client_index].frame == NULL)
+		clients[client_index].input_data = realloc(clients[client_index].input_data, frame->input_size);
+	else if(clients[client_index].frame->input_size < frame->input_size)
+		clients[client_index].input_data = realloc(clients[client_index].input_data, frame->input_size);
+
+	bzero(clients[client_index].input_data, frame->input_size);
 	clients[client_index].frame = frame;
 	
 	// construct file
@@ -387,15 +405,11 @@ void l_frame_send(Frame* frame, unsigned int client_index) {
 	}
 	
 	// send file
-<<<<<<< HEAD
 	l_send(clients[client_index].socket_fd, frame_data, frame_size );
 }
 
-void l_default(Frame* frame) {
+void l_frame_default(Frame* frame) {
 	default_frame = frame;
-=======
-	l_send(clients[client_index].socket_fd, frame_data, frame_size, SOCK_NONBLOCK);
-	free(frame);
 }
 
 Frame* l_frame_read(int fd) {
@@ -426,33 +440,35 @@ Frame* l_frame_read(int fd) {
 	}
 
 	return frame;
->>>>>>> c8fddc4c925d47e7ddcfbd0846c995734548b9b3
 }
 
 void l_poll() {
 	unsigned long total_client_size = 0;
 	for(unsigned int i = 0; i < clients_size; i++) {
 		Frame* frame = clients[i].frame;
-		if(frame == NULL)
-			frame = default_frame;
 
-		total_client_size += frame->input_size;
+		if(frame != NULL)
+			total_client_size += frame->input_size;
 	}
 
-	if(total_client_size > clients_data_size)
+	if(total_client_size > clients_data_size) {
 		clients_data = realloc(clients_data, total_client_size);
+		clients_data_size = total_client_size;
+	}
 
+	bzero(clients_data, clients_data_size);
 
-	unsigned long current_byte;
+	unsigned long current_byte = 0;
 	for(unsigned int i = 0; i < clients_size; i++) {
 		Frame* frame = clients[i].frame;
-		if(frame == NULL)
-			frame = default_frame;
-		
-		for(unsigned int j = 0; j < frame->input_size; j++)
-			clients_data[current_byte + j] = clients[i].input_data[j];
+		if(frame != NULL) {
+			//printf("this ran here\n");
+			if(clients[i].input_data != NULL)
+				for(unsigned int j = 0; j < frame->input_size; j++)
+					clients_data[current_byte + j] = clients[i].input_data[j];
 
-		current_byte += frame->input_size;
+			current_byte += frame->input_size;
+		}
 	}
 }
 
@@ -467,11 +483,16 @@ Frame* l_frame_create(FrameType type, Orientation orientation) {
 	return malloc(sizeof(Frame));
 }
 
+// When frame is destroyed, all clients are kicked back into the default frame
 void l_frame_destroy(Frame* frame) {
-	free(frame);
-	for(unsigned int i = 0; i < clients_size; i++) {
-		pthread_join(client_thread, NULL);
+	for(int i = 0; i < clients_size; i++) {
+		if(clients[i].frame == frame) {
+			clients[i].frame = default_frame;
+			l_frame_send(frame, i);
+		}
 	}
+
+	free(frame);
 }
 
 // TODO: verify this works
@@ -502,3 +523,7 @@ void l_frame_print(Frame* frame) {
 }
 
 
+int l_client_active(unsigned int client_index) {
+	assert(client_index < clients_size);
+	return clients[client_index].active;
+}

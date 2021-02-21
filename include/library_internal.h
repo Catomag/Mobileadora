@@ -27,18 +27,17 @@ typedef struct {
 // Randomly necessary for websocket handshake
 void hash_to_base64(unsigned char* data, char* output);
 
-void l_send(int fd, void* buffer, unsigned int size, int flags); // sends info to client
+void l_send(int socket, void* data, unsigned long size); // sends a websocket
 
 void* l_client_handler(void* data);
 void* l_client_accept_loop(void* data);
-void l_send(int socket, void* data, unsigned long size); // sends a websocket
 
 
 extern Client* clients;
 extern unsigned int clients_count;
 extern unsigned int clients_size;
 extern unsigned char* clients_data; // not meant to be easily read, use l_input_get to retrieve data
-extern unsigned int clients_data_size;
+extern unsigned long clients_data_size;
 
 extern Frame* default_frame;
 extern void* frames;

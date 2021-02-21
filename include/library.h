@@ -53,9 +53,8 @@ extern unsigned int l_client_max_count(); // returns number of maximum clients
 extern Frame* l_frame_create(FrameType type, Orientation orientation);
 extern Frame* l_frame_copy(Frame* frame); // create copy of existing frame, copy must be freed with frame_destroy
 extern void l_frame_destroy(Frame* frame);
-extern void l_frame_send(Frame* frame, unsigned int client_index); // sends frame to client on specified index
+extern void l_frame_send(Frame* frame, unsigned int client_index); // sets frame to client on specified index
 
-extern void l_frame_send(Frame* frame, unsigned int client_index); // sends frame to client on specified index
 extern void l_frame_default(Frame* frame); // set frame as default
 
 extern void l_frame_fetch(Frame* frame); // manually asks clients for data, used in static frames
