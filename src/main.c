@@ -4,7 +4,9 @@
 #include <unistd.h>
 #include <raylib.h>
 
-#define PLAYER_COUNT 10
+#define PLAYER_COUNT 60
+#define WIDTH 1300
+#define HEIGHT 720
 
 typedef struct {
 	float x;
@@ -60,22 +62,22 @@ int main() {
 	l_frame_print(main_frame);
 	l_frame_default(main_frame);
 
-	InitWindow(600, 600, "testapp");
+	InitWindow(WIDTH, HEIGHT, "testapp");
 	
 
-#define PELLET_COUNT 60
+#define PELLET_COUNT 50
 
 	Player players[PLAYER_COUNT];
 	Pellet pellets[PELLET_COUNT];
 
 	for(int i = 0; i < PELLET_COUNT; i++) {
-		pellets[i].x = rand()%600;
-		pellets[i].y = rand()%600;
+		pellets[i].x = rand()%WIDTH;
+		pellets[i].y = rand()%HEIGHT;
 	}
 
 	for(int i = 0; i < PLAYER_COUNT; i++) {
-		players[i].x = rand()%600;
-		players[i].y = rand()%600;
+		players[i].x = rand()%WIDTH;
+		players[i].y = rand()%HEIGHT;
 
 		players[i].thicc = 8;
 		players[i].color = (Color) { rand()%255, rand()%255, rand()%255, 255 };
@@ -101,22 +103,22 @@ int main() {
 
 						if(players[i].x < 0)
 							players[i].x = 0;
-						else if(players[i].x > 600)
-							players[i].x = 600;
+						else if(players[i].x > WIDTH)
+							players[i].x = WIDTH;
 
 						if(players[i].y < 0)
 							players[i].y = 0;
-						else if(players[i].y > 600)
-							players[i].y = 600;
+						else if(players[i].y > HEIGHT)
+							players[i].y = HEIGHT;
 					}
 
 					// eat pelet
 					for(int j = 0; j < PELLET_COUNT; j++) {
 						if( (players[i].x - pellets[j].x) * (players[i].x - pellets[j].x) +
-							(players[i].y - pellets[j].y) * (players[i].y - pellets[j].y) < 9 + (players[i].thicc / 2 + 4) * (players[i].thicc / 2 + 4)) {
+							(players[i].y - pellets[j].y) * (players[i].y - pellets[j].y) < 9 + (players[i].thicc) * (players[i].thicc)) {
 							players[i].thicc += 1;
-							pellets[j].x = rand() % 600;
-							pellets[j].y = rand() % 600;
+							pellets[j].x = rand() % WIDTH;
+							pellets[j].y = rand() % HEIGHT;
 						}
 					}
 
@@ -125,19 +127,19 @@ int main() {
 					for(int j = 0; j < PLAYER_COUNT; j++) {
 						if(l_client_active(j)) {
 							if( (players[i].x - players[j].x) * (players[i].x - players[j].x) +
-								(players[i].y - players[j].y) * (players[i].y - players[j].y) < (players[i].thicc / 2 + 4) * (players[i].thicc / 2 + 4) &&
+								(players[i].y - players[j].y) * (players[i].y - players[j].y) < (players[i].thicc / 2) * (players[i].thicc / 2) &&
 								players[i].thicc > players[j].thicc) {
 
-								players[i].thicc += players[j].thicc;
+								players[i].thicc += players[j].thicc / 2;
 								players[j].thicc = 8;
-								players[j].x = rand()%600;
-								players[j].y = rand()%600;
+								players[j].x = rand()%WIDTH;
+								players[j].y = rand()%HEIGHT;
 							}
 						}
 					}
 
-					if(players[i].thicc > 30)
-						players[i].thicc -= (rand()%players[i].thicc) / 200;
+//					if(players[i].thicc > 30)
+//						players[i].thicc -= (rand()%players[i].thicc) / 200;
 				}
 			}
 
