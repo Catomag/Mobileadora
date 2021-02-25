@@ -120,7 +120,7 @@ void* l_client_handler(void* data) {
 					}
 
 					if(payload_length >= payload_size) {
-						payload_size += payload_length + 1;
+						payload_size += payload_length;
 						payload = realloc(payload, payload_size);
 					}
 
@@ -130,7 +130,6 @@ void* l_client_handler(void* data) {
 					for(uint64_t j = 0; j < payload_length; j++)
 						payload[j] = payload[j] ^ mask_key[j % 4];
 
-					payload[payload_length] = '\0';
 					// handle data
 //					printf("	Payload: ");
 ////					for(int j = 0; j < payload_length; j++)
@@ -144,24 +143,28 @@ void* l_client_handler(void* data) {
 //
 //					printf("%f, %f\n\n", pitch, yaw);
 
-					unsigned char input_type = payload[0];
-					unsigned char input_index = payload[1];
-					unsigned char current_input_index = 0;
 
 //					printf("payload length: %u\n", payload_length);
 //					printf("input size: %u\n", clients[i].frame->input_size);
 
 					//assert(payload_length - 2 == clients[i].frame->input_size);
 
+					unsigned char input_type = payload[0];
+					unsigned char input_index = payload[1];
+					unsigned char current_input_index = 0;
+					unsigned int current_byte = 0;
+
 					for(unsigned int j = 0; j < clients[i].frame->input_count; j++) {
+						// current type matches type
 						if(clients[i].frame->inputs[j].type == input_type) {
 							if(input_index == current_input_index) {
 								for(unsigned int k = 0; k < clients[i].frame->inputs[j].size; k++)
-									clients[i].input_data[k] = payload[2 + k];
+									clients[i].input_data[current_byte + k] = payload[2 + k];
 								break;
 							}
 							current_input_index++;
 						}
+						current_byte += clients[i].frame->inputs[j].size;
 					}
 				}
 			}

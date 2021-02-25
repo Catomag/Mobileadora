@@ -89,7 +89,7 @@ int main() {
 		time += GetTime() - prev_time;
 		prev_time = GetTime();
 
-		if(time > .008f) {
+		if(time > .016f) {
 			time = 0;
 
 			for(int i = 0; i < PLAYER_COUNT; i++) {
