@@ -27,6 +27,7 @@ int main() {
 
 	Frame* main_frame = l_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL);
 	l_frame_input_add(main_frame, l_input_joystick_create());
+	l_frame_input_add(main_frame, l_input_button_create());
 //	l_send(main_frame, )
 
 	// Contents of first frame
@@ -86,6 +87,7 @@ int main() {
 	float time = 0;
 	float prev_time = 0;
 	while(!WindowShouldClose()) {
+		//l_poll();
 		time += GetTime() - prev_time;
 		prev_time = GetTime();
 
@@ -110,6 +112,13 @@ int main() {
 							players[i].y = 0;
 						else if(players[i].y > HEIGHT)
 							players[i].y = HEIGHT;
+					}
+
+					unsigned char b1 = 0;
+					unsigned char b2 = 0;
+					if(l_input_button_get(i, 0, &b1)) {
+						if(b1)
+							players[i].thicc += 1;
 					}
 
 					// eat pelet

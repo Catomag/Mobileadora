@@ -69,7 +69,7 @@ void hash_to_base64(unsigned char* data, char* output) {
 // TODO: maybe add support for multiple dataframes
 void* l_client_handler(void* data) {
 	struct timespec delay;
-	delay.tv_nsec = 20 * 1000000; // TODO: remember, 20ms of artificial delay
+	delay.tv_nsec = 5 * 1000000; // TODO: remember, 20ms of artificial delay
 	delay.tv_sec = 0;
 	struct timespec remaining;
 
@@ -82,7 +82,7 @@ void* l_client_handler(void* data) {
 			pollfds[i].fd = clients[i].socket_fd;
 			pollfds[i].events = POLLIN | POLLOUT;
 		}
-		poll(pollfds, clients_count, 10);
+		poll(pollfds, clients_count, 5);
 
 		for(uint i = 0; i < clients_count; i++) {
 			if(clients[i].active && (pollfds[i].revents & POLLIN) && (pollfds[i].revents & POLLOUT)) {
@@ -136,13 +136,8 @@ void* l_client_handler(void* data) {
 ////						printf("	%i\n", payload[j]);
 ////					printf("\n");
 //
-//					short x = be16toh(payload[2]);
-//					short y = be16toh(payload[4]);
-//					float pitch = ((float) x / 0xFFFF) * 2.f;
-//					float yaw = ((float) y / 0xFFFF) * 2.f;
 //
 //					printf("%f, %f\n\n", pitch, yaw);
-
 
 //					printf("payload length: %u\n", payload_length);
 //					printf("input size: %u\n", clients[i].frame->input_size);
@@ -465,7 +460,6 @@ void l_poll() {
 	for(unsigned int i = 0; i < clients_size; i++) {
 		Frame* frame = clients[i].frame;
 		if(frame != NULL) {
-			//printf("this ran here\n");
 			if(clients[i].input_data != NULL)
 				for(unsigned int j = 0; j < frame->input_size; j++)
 					clients_data[current_byte + j] = clients[i].input_data[j];

@@ -65,9 +65,9 @@ extern void l_frame_text_set(Frame* frame, unsigned int index, const char* text)
 extern void l_frame_input_add(Frame* frame, Input input); // add input to the frame
 
 extern Input l_input_text_create(unsigned short max_chars);
-extern Input l_input_button_create(const char* text);
-extern Input l_input_submit_create(const char* text);
-extern Input l_input_toggle_create(const char* text);
+extern Input l_input_button_create();
+extern Input l_input_submit_create();
+extern Input l_input_toggle_create();
 extern Input l_input_joystick_create();
 extern Input l_input_generic_create(unsigned int size);
 
