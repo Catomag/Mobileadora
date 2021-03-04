@@ -46,9 +46,6 @@ void hash_to_base64(unsigned char* data, char* output) {
 
 		// reached end of group
 		if(group_count == 6) {
-			if(index > 64)
-				printf("biggest value: %i, at %i, %i\n", index, current_byte, current_bit);
-
 			output[current_bit / 6] = base64_alphabet[index];
 			group_count = 0;
 			index = 0;
@@ -481,6 +478,7 @@ Frame* l_frame_create(FrameType type, Orientation orientation) {
 }
 
 // When frame is destroyed, all clients are kicked back into the default frame
+// TODO: check if frame being destroyed IS current frame
 void l_frame_destroy(Frame* frame) {
 	for(int i = 0; i < clients_size; i++) {
 		if(clients[i].frame == frame) {

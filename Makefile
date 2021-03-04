@@ -2,7 +2,7 @@ SOURCES = $(wildcard ./src/*.c)
 SRC = $(addprefix src/, $(SOURCES))
 OBJ = $(addsuffix .o, $(addprefix bin/, $(basename $(notdir $(SRC)))));
 INCLUDE = -I include
-CFLAGS = -pedantic -W -O2 -D_DEBUG_
+CFLAGS = -pedantic -W -O3 -D_DEBUG_
 
 all: server
 

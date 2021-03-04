@@ -1,3 +1,5 @@
+#ifndef LIBRARY_H
+#define LIBRARY_H
 
 // type declarations
 #ifndef bool
@@ -41,8 +43,8 @@ struct _Input {
 extern void l_init(unsigned int max_clients, unsigned short port); // starts server and creates separate thread to handle clients
 extern void l_free(); // stops library and frees allocated resources 
 
-extern void l_default(Frame* frame); // set frame as default
 extern void l_poll(); // retrieves client information and current input information
+extern void l_fetch(unsigned int client_index); // manually asks clients for data, used in static frames
 
 extern unsigned int l_client_index_from_id(void* client_id); // returns NULL_CLIENT if id is invalid or client is disconnected
 extern void* l_client_id_from_index(unsigned int client_index); // returns NULL_CLIENT if id is invalid or client is disconnected
@@ -56,8 +58,6 @@ extern void l_frame_destroy(Frame* frame);
 extern void l_frame_send(Frame* frame, unsigned int client_index); // sets frame to client on specified index
 
 extern void l_frame_default(Frame* frame); // set frame as default
-
-extern void l_frame_fetch(Frame* frame); // manually asks clients for data, used in static frames
 extern void l_frame_print(Frame* frame); // print contents of frame object
 
 extern void l_frame_text_add(Frame* frame, const char* text); // request some text be added to the frame
@@ -82,7 +82,4 @@ extern bool l_input_joystick_get(unsigned int client_index, unsigned char input_
 
 
 
-
-
-
-
+#endif
