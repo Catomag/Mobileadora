@@ -208,6 +208,7 @@ void* l_client_accept_loop(void* data) {
 				close(client_fd);
 			}
 			else {
+				// Find key in request
 				char request_key_accept[] = "Sec-WebSocket-Key: ";
 				char* request_key_loc = strstr(request, request_key_accept) + 19;
 
@@ -216,6 +217,7 @@ void* l_client_accept_loop(void* data) {
 				strncpy(request_key, request_key_loc, 24);
 				request_key[24] = '\0';
 
+				// Find response key
 				char response_key[29];
 				char magic_string[60];
 				strcpy(magic_string, request_key);
@@ -227,6 +229,7 @@ void* l_client_accept_loop(void* data) {
 				hash_to_base64(hash, response_key);
 				response_key[28] = '\0';
 
+				// Format HTTP response
 				char response[137]; 
 				bzero(response, sizeof(response));
 				strcat(response, "HTTP/1.1 101 Switching Protocols\r\n");

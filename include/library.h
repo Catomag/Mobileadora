@@ -64,12 +64,12 @@ extern void l_frame_text_add(Frame* frame, const char* text); // request some te
 extern void l_frame_text_set(Frame* frame, unsigned int index, const char* text); // change the text
 extern void l_frame_input_add(Frame* frame, Input input); // add input to the frame
 
+extern Input l_input_generic_create(unsigned int size);
 extern Input l_input_text_create(unsigned short max_chars);
 extern Input l_input_button_create();
 extern Input l_input_submit_create();
 extern Input l_input_toggle_create();
 extern Input l_input_joystick_create();
-extern Input l_input_generic_create(unsigned int size);
 
 extern int l_input_get_all(Input type, unsigned char index, void* data); // returns all input data from all clients for a specific input
 extern bool l_input_get(unsigned int client_index, InputType type, unsigned char index, unsigned char* data);
