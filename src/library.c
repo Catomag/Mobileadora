@@ -63,7 +63,19 @@ void hash_to_base64(unsigned char* data, char* output) {
 	output[27] = '=';
 }
 
+void reverseEndianness(const long long int size, void* value){
+    int i;
+    char result[32];
+    for( i=0; i<size; i+=1 ){
+        result[i] = ((char*)value)[size-i-1];
+    }
+    for( i=0; i<size; i+=1 ){
+        ((char*)value)[i] = result[i];
+    }
+}
+
 // TODO: maybe add support for multiple dataframes
+// TODO: clients_count should be clients_size in all these loops
 void* l_client_handler(void* data) {
 	struct timespec delay;
 	delay.tv_nsec = 5 * 1000000; // TODO: remember, 20ms of artificial delay
@@ -128,16 +140,23 @@ void* l_client_handler(void* data) {
 						payload[j] = payload[j] ^ mask_key[j % 4];
 
 					// handle data
-//					printf("	Payload: ");
-////					for(int j = 0; j < payload_length; j++)
-////						printf("	%i\n", payload[j]);
-////					printf("\n");
-//
-//
-//					printf("%f, %f\n\n", pitch, yaw);
+					printf("Payload: \n");
+					for(int j = 0; j < payload_length; j++)
+						printf("	%i\n", payload[j]);
+					printf("\n");
 
-//					printf("payload length: %u\n", payload_length);
-//					printf("input size: %u\n", clients[i].frame->input_size);
+					int test = 1;
+					char *p = (char*)&test;
+
+					printf("big endian? %i\n", p[0] == 0);
+
+
+					float yaw = payload[2];
+					printf("%f, %f\n\n", *((float*) &payload[2]), *((float*) &payload[6]));
+
+					printf("payload length: %u\n", payload_length);
+					printf("input size: %u\n", clients[i].frame->input_size);
+					printf("\n\n\n");
 
 					//assert(payload_length - 2 == clients[i].frame->input_size);
 
@@ -145,13 +164,16 @@ void* l_client_handler(void* data) {
 					unsigned char input_index = payload[1];
 					unsigned char current_input_index = 0;
 					unsigned int current_byte = 0;
+					printf("input type: %u\n", input_type);
 
 					for(unsigned int j = 0; j < clients[i].frame->input_count; j++) {
 						// current type matches type
 						if(clients[i].frame->inputs[j].type == input_type) {
 							if(input_index == current_input_index) {
-								for(unsigned int k = 0; k < clients[i].frame->inputs[j].size; k++)
-									clients[i].input_data[current_byte + k] = payload[2 + k];
+								unsigned int input_size = clients[i].frame->inputs[j].size;
+								printf("input size 2: %u\n", input_size);
+
+								memcpy(&clients[i].input_data[current_byte], &payload[2], input_size);
 								break;
 							}
 							current_input_index++;
@@ -349,6 +371,7 @@ void l_send(int socket, void* data, unsigned long size) {
 			payload[payload_length_size + i] = (unsigned char) ((unsigned char*)data)[i];
 
 	uint64_t payload_length_buf = 0;
+	// TODO: revise this, pretty sure that this part is already taken care of 8 and 13 lines above
 	payload_length_buf = htobe64(size);
 
 	send(socket, header, 2, MSG_NOSIGNAL);
@@ -403,7 +426,7 @@ void l_frame_send(Frame* frame, unsigned int client_index) {
 	}
 	
 	// send file
-	l_send(clients[client_index].socket_fd, frame_data, frame_size );
+	l_send(clients[client_index].socket_fd, frame_data, frame_size);
 }
 
 void l_frame_default(Frame* frame) {
@@ -471,13 +494,18 @@ void l_poll() {
 
 
 
-Frame* l_frame_create(FrameType type, Orientation orientation) {
-	Frame frame;
-	frame.type = type;
-	frame.orientation = orientation;
-	frame.input_size = 0;
-	frame.input_count = 0;
-	return malloc(sizeof(Frame));
+Frame* l_frame_create(FrameType type, Orientation orientation, bool scrollable, bool resizeable) {
+	Frame* frame = (Frame*) malloc(sizeof(Frame));
+	frame->type = type;
+	frame->orientation = orientation;
+	frame->scrollable = scrollable;
+	frame->resizeable = resizeable;
+	frame->input_size = 0;
+	frame->input_count = 0;
+	frame->element_size = 0;
+	frame->element_count = 0;
+
+	return frame;
 }
 
 // When frame is destroyed, all clients are kicked back into the default frame
@@ -490,30 +518,49 @@ void l_frame_destroy(Frame* frame) {
 		}
 	}
 
+	free(frame->elements);
 	free(frame);
 }
 
 // TODO: verify this works
 void l_frame_input_add(Frame* frame, Input input) {
-	frame = realloc(frame, sizeof(Frame) + sizeof(Input) * (frame->input_count + 1)); // this might be expensive
+	frame = realloc(frame, sizeof(Frame) + sizeof(Input)); // this might be expensive
+
 	frame->inputs[frame->input_count].type = input.type;
 	frame->inputs[frame->input_count].size = input.size;
-
-	unsigned int total_input_size = 0;
-	for(unsigned int i = 0; i < frame->input_count; i++) {
-		total_input_size += frame->inputs[i].size;
-	}
 
 	frame->input_count++;
 	frame->input_size += input.size;
 }
 
+void l_frame_element_add(Frame* frame, Element element) {
+	printf("this is %u\n", frame->element_count);
+	printf("this is %u\n", frame->element_size);
+	frame->elements = realloc(frame->elements, frame->element_size + sizeof(Element) + element.size);
+
+	printf("this is ok %u\n", frame->element_count);
+	printf("this is ok %u\n", frame->element_size);
+	frame->elements[frame->element_size].type = element.type;
+	frame->elements[frame->element_size].size = element.size;
+	for(unsigned int i = 0; i < element.size; i++)
+		frame->elements[frame->element_size].data[i] = element.data[i];
+
+	frame->element_count++;
+	frame->element_size += element.size + sizeof(Element);
+}
+
 void l_frame_print(Frame* frame) {
 	printf("orientation: %s\n", (frame->orientation == ORIENTATION_VERTICAL) ? "vertical" : "horizontal");
 	printf("type: %s\n", (frame->type == FRAME_STATIC) ? "static" : "dynamic");
+	printf("scrollable: %s\n", (frame->scrollable) ? "true" : "false");
+	printf("resizeable: %s\n", (frame->resizeable) ? "true" : "false");
 
 	for(unsigned int i = 0; i < frame->input_count; i++) {
 		printf("	%i Input: %i, length: %u\n", i, frame->inputs[i].type, frame->inputs[i].size);
+	}
+
+	for(unsigned int i = 0; i < frame->element_count; i++) {
+		printf("	%i Element: %i, length: %u\n", i, frame->elements[i].type, frame->elements[i].size);
 	}
 
 	printf("input size: %u\n", frame->input_size);

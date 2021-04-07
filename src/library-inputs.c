@@ -8,7 +8,7 @@
 // input definitions
 const Input JOYSTICK = {
 	INPUT_JOYSTICK,
-	sizeof(short) * 2
+	sizeof(float) * 2
 };
 
 const Input BUTTON = {
@@ -44,10 +44,17 @@ bool l_input_get(unsigned int client_index, InputType type, unsigned char input_
 
 	unsigned char current_index = 0;
 	unsigned long current_byte = 0;
+
 	for(unsigned char i = 0; i < clients[client_index].frame->input_count; i++) {
 		if(clients[client_index].frame->inputs[i].type == type) {
 			if(input_index == current_index) {
-				memcpy(data, &clients[client_index].input_data[current_byte], clients[client_index].frame->inputs[i].size);
+				unsigned int input_size = clients[client_index].frame->inputs[i].size;
+
+				for(int j = 0; j < input_size; j++) {
+					//printf("	%i\n", clients[client_index].input_data[j]);
+				}
+
+				memcpy(data, &clients[client_index].input_data[current_byte], input_size);
 				return 1;
 			}
 			current_index++;
@@ -66,12 +73,13 @@ bool l_input_joystick_get(unsigned int client_index, unsigned char input_index, 
 	if(clients[client_index].input_data == NULL)
 		return 0;
 
+	// should probably find a better approach
 	unsigned char data[JOYSTICK.size];
 	if(l_input_get(client_index, INPUT_JOYSTICK, input_index, data)) {
-		short x = be16toh(data[0]);
-		short y = be16toh(data[2]);
-		*x_value = ((float) x / 0xFFFF) * 2.f;
-		*y_value = ((float) y / 0xFFFF) * 2.f;
+		*x_value = *((float*) &data[0]);
+		*y_value = *((float*) &data[4]);
+//		printf("x: %f, ", *x_value);
+//		printf("y: %f\n", *y_value);
 
 		if(*x_value > .99)
 			*x_value = 1;

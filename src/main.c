@@ -1,5 +1,6 @@
 // THIS FILE IS ONLY HERE FOR TESTING PURPOSES
 #include "../include/library.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <raylib.h>
@@ -10,7 +11,7 @@
 #define HEIGHT 720
 
 // RULES
-#define WALLS
+//#define WALLS
 #define WRAP_SELF
 
 #define CELL_SIZE 8 
@@ -79,39 +80,26 @@ int main() {
 
 	l_init(PLAYER_COUNT, 8000);
 
-	Frame* main_frame = l_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL);
+	Frame* main_frame = l_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL, false, false);
+	printf("this ran\n");
 	l_frame_input_add(main_frame, l_input_joystick_create());
+	printf("this ran\n");
 	l_frame_input_add(main_frame, l_input_button_create());
-//	l_send(main_frame, )
 
-	// Contents of first frame
-//	l_frame_text_add(main_frame, "First name:");
-//	l_frame_input_add(main_frame, l_input_text_create(20));
-//	l_frame_text_add(main_frame, "Last name:");
-//	l_frame_input_add(main_frame, l_input_text_create(30));
-//	l_frame_input_add(main_frame, l_input_submit_create("Submit"));
-//
-//	// wait 10 seconds for clients to join
-//	sleep(10);
-//	unsigned int client_count = l_client_count();
-//	for(int i = 0; i < client_count; i++) {
-//		l_send(main_frame, i);
-//	}
-//
-//	// wait 20 seconds
-//	sleep(20);
-//	l_frame_fetch(main_frame); // force clients to submit data
-//	l_poll(); // update internal data
-//
-//	char first_client_name[20];
-//	l_input_text_get(0, 0, first_client_name);
-//
-//	char names[20 * client_count];
-//	char last_names[30 * client_count];
-//	for(int i = 0; i < client_count; i++) {
-//		l_input_text_get(i, 0, &names[20 * i]);
-//		l_input_text_get(i, 1, &last_names[20 * i]);
-//	}
+	printf("this ran\n");
+	Element br;
+	br.type = ELEMENT_BREAK;
+	br.size = 0;
+
+	printf("this ran\n");
+	Element text;
+	br.type = ELEMENT_TEXT;
+	br.size = 5;
+
+//	l_frame_element_add(main_frame, text);
+//	l_frame_element_add(main_frame, br);
+//	l_frame_element_add(main_frame, br);
+	printf("this ran\n");
 	
 	// do stuff with data
 	l_frame_print(main_frame);
@@ -125,6 +113,9 @@ int main() {
 	float grow_time = 0;
 	float prev_time = 0;
 	unsigned long tick = 0;
+
+	SetTargetFPS(60);
+
 	while(!WindowShouldClose()) {
 		time += GetTime() - prev_time;
 		grow_time += GetTime() - prev_time;

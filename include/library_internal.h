@@ -11,8 +11,14 @@ typedef enum {
 struct _Frame {
 	FrameType type;
 	Orientation orientation;
+	bool scrollable;
+	bool resizeable;
 	unsigned int input_count;
 	unsigned int input_size;
+	unsigned int element_count;
+	unsigned int element_size;
+	Element* elements; // Elements begin at elements[input_size]
+	// inputs are allocated with frame struct to improve cache coherency, since input data is often accessed with frame data
 	Input inputs[];
 };
 

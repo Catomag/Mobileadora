@@ -7,6 +7,7 @@ typedef unsigned char bool;
 #endif
 typedef struct _Frame Frame;
 typedef struct _Input Input;
+typedef struct _Element Element;
 
 #define NULL_CLIENT ((unsigned int) -1)
 #define ALL_CLIENTS ((unsigned int) -1)
@@ -27,6 +28,16 @@ typedef enum {
 } InputType;
 
 typedef enum {
+	ELEMENT_TEXT,
+	ELEMENT_BREAK, // <br> in html
+	ELEMENT_LINE,
+	ELEMENT_HEADER1,
+	ELEMENT_HEADER2,
+	ELEMENT_HEADER3,
+	ELEMENT_IMAGE,
+} ElementType;
+
+typedef enum {
 	ORIENTATION_VERTICAL,
 	ORIENTATION_HORIZONTAL
 } Orientation;
@@ -35,6 +46,12 @@ typedef enum {
 struct _Input {
 	InputType type;
 	unsigned int size; // size in bytes
+};
+
+struct _Element {
+	ElementType type;
+	unsigned int size; // size can be 0
+	unsigned char data[];
 };
 
 
@@ -52,17 +69,16 @@ extern int l_client_active(unsigned int client_index); // checks if the client i
 extern unsigned int l_client_active_count(); // returns number of active clients
 extern unsigned int l_client_max_count(); // returns number of maximum clients
 
-extern Frame* l_frame_create(FrameType type, Orientation orientation);
-extern Frame* l_frame_copy(Frame* frame); // create copy of existing frame, copy must be freed with frame_destroy
+extern Frame* l_frame_create(FrameType type, Orientation orientation, bool scrollable, bool resizeable);
 extern void l_frame_destroy(Frame* frame);
+extern Frame* l_frame_copy(Frame* frame); // create copy of existing frame, copy must be freed with frame_destroy
 extern void l_frame_send(Frame* frame, unsigned int client_index); // sets frame to client on specified index
 
 extern void l_frame_default(Frame* frame); // set frame as default
 extern void l_frame_print(Frame* frame); // print contents of frame object
 
-extern void l_frame_text_add(Frame* frame, const char* text); // request some text be added to the frame
-extern void l_frame_text_set(Frame* frame, unsigned int index, const char* text); // change the text
 extern void l_frame_input_add(Frame* frame, Input input); // add input to the frame
+extern void l_frame_element_add(Frame* frame, Element element); // adds an element to the frame
 
 extern Input l_input_generic_create(unsigned int size);
 extern Input l_input_text_create(unsigned short max_chars);
@@ -71,6 +87,13 @@ extern Input l_input_submit_create();
 extern Input l_input_toggle_create();
 extern Input l_input_joystick_create();
 
+extern Element l_element_text_create(const char* string);
+extern Element l_element_h1_create(const char* string);
+extern Element l_element_h2_create(const char* string);
+extern Element l_element_h3_create(const char* string);
+extern Element l_element_break_create();
+extern Element l_element_line_create();
+
 extern int l_input_get_all(Input type, unsigned char index, void* data); // returns all input data from all clients for a specific input
 extern bool l_input_get(unsigned int client_index, InputType type, unsigned char index, unsigned char* data);
 extern bool l_input_text_get(unsigned int client_index, unsigned char input_index, char* value);
@@ -78,6 +101,7 @@ extern bool l_input_button_get(unsigned int client_index, unsigned char input_in
 extern bool l_input_submit_get(unsigned int client_index, unsigned char input_index, unsigned char* value);
 extern bool l_input_toggle_get(unsigned int client_index, unsigned char input_index, unsigned char* value);
 extern bool l_input_joystick_get(unsigned int client_index, unsigned char input_index, float* x_value, float* y_value);
+
 
 
 
