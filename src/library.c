@@ -16,13 +16,16 @@
 
 #include "../include/library_internal.h"
 
+#define _H_DEBUG_MEMORY_
+#include <Gaia/Hephaestus.h>
+
 static int server_fd;
 
 Client* clients;
 pthread_t client_thread;
 unsigned int clients_count;
 unsigned int clients_size;
-unsigned char* clients_data = NULL;
+void* clients_data = NULL;
 unsigned long clients_data_size = 0;
 
 unsigned char server_running = 0;
@@ -140,23 +143,23 @@ void* l_client_handler(void* data) {
 						payload[j] = payload[j] ^ mask_key[j % 4];
 
 					// handle data
-					printf("Payload: \n");
-					for(int j = 0; j < payload_length; j++)
-						printf("	%i\n", payload[j]);
-					printf("\n");
-
-					int test = 1;
-					char *p = (char*)&test;
-
-					printf("big endian? %i\n", p[0] == 0);
-
-
-					float yaw = payload[2];
-					printf("%f, %f\n\n", *((float*) &payload[2]), *((float*) &payload[6]));
-
-					printf("payload length: %u\n", payload_length);
-					printf("input size: %u\n", clients[i].frame->input_size);
-					printf("\n\n\n");
+					//printf("Payload: \n");
+//					for(int j = 0; j < payload_length; j++)
+//						printf("	%i\n", payload[j]);
+//					printf("\n");
+//
+//					int test = 1;
+//					char *p = (char*)&test;
+//
+//					printf("big endian? %i\n", p[0] == 0);
+//
+//
+//					float yaw = payload[2];
+//					printf("%f, %f\n\n", *((float*) &payload[2]), *((float*) &payload[6]));
+//
+//					printf("payload length: %u\n", payload_length);
+//					printf("input size: %u\n", clients[i].frame->input_size);
+//					printf("\n\n\n");
 
 					//assert(payload_length - 2 == clients[i].frame->input_size);
 
@@ -164,14 +167,13 @@ void* l_client_handler(void* data) {
 					unsigned char input_index = payload[1];
 					unsigned char current_input_index = 0;
 					unsigned int current_byte = 0;
-					printf("input type: %u\n", input_type);
+					//printf("input type: %u\n", input_type);
 
 					for(unsigned int j = 0; j < clients[i].frame->input_count; j++) {
 						// current type matches type
 						if(clients[i].frame->inputs[j].type == input_type) {
 							if(input_index == current_input_index) {
 								unsigned int input_size = clients[i].frame->inputs[j].size;
-								printf("input size 2: %u\n", input_size);
 
 								memcpy(&clients[i].input_data[current_byte], &payload[2], input_size);
 								break;
@@ -286,6 +288,7 @@ void* l_client_accept_loop(void* data) {
 void l_init(unsigned int max_clients, unsigned short port) {
 	server_running = 1;
 
+	printf("this ran\n");
 	// set up clients
 	clients = (Client*) malloc(max_clients * sizeof(Client));
 
@@ -298,6 +301,7 @@ void l_init(unsigned int max_clients, unsigned short port) {
 	clients_count = 0;
 	clients_size = max_clients;
 
+	printf("Launching client handler\n");
 	// launch client handler
 	pthread_create(&client_thread, NULL, l_client_handler, NULL);
 
@@ -338,6 +342,8 @@ void l_init(unsigned int max_clients, unsigned short port) {
 
 void l_free() {
 	server_running = 0;
+	pthread_join(client_thread, NULL);
+	free(clients);
 }
 
 void l_send(int socket, void* data, unsigned long size) {
@@ -381,10 +387,11 @@ void l_send(int socket, void* data, unsigned long size) {
 
 // Frame binary file (very efficient)
 //
-// |--------------------------HEADER----------------------------|---------INPUT-0-0-------|---INPUT-N---|
-// [[type_header]-[frame_type]-[frame_orientation]-[input_count] [input_type]-[input-size] [    ...    ]]
-//	1 byte,	   	  1 byte,	   1 byte,			   4 bytes,	 	 1 byte,	  4 bytes,	   5 bytes.	
-// |------------------------------------------------------------|-------------------------|-------------|
+// |--------------------------HEADER----------------------------------------------------------------------------------|---------INPUT-0-0-------|---INPUT-N---|--repeat for elem->
+// [[type_header]-[frame_type]-[frame_orientation]-[frame_resizeable]-[frame_scrollable]-[input_count]-[element_count] [input_type]-[input-size] [    ...    ]]
+//	4 bits,	   	  1 bit,	   1 bit,			   1 bit,	 	 	  1 bit			 	 2 bytes,	   2 bytes			 4 bytes,	  5 bytes.	
+//
+// |------------------------------------------------------------------------------------------------------------------|-------------------------|-------------|
 
 // TODO: option to remove asserts at compile time
 void l_frame_send(Frame* frame, unsigned int client_index) {
@@ -405,18 +412,29 @@ void l_frame_send(Frame* frame, unsigned int client_index) {
 	clients[client_index].frame = frame;
 	
 	// construct file
+	unsigned short input_count   = frame->input_count;
+	unsigned short element_count = frame->element_count;
 
-	unsigned int frame_size = 7 + (frame->input_count * (5) + frame->input_size);
+	// 5 bytes for header, 5 bytes per input, 5 byte per element and element size because of internal data stored
+	unsigned int frame_size = 5 + (input_count * 5) + (element_count * 5 + frame->element_size);
 	unsigned char* frame_data = malloc(frame_size);
 
 	// header
-	frame_data[0] = MESSAGE_FRAME;
-	frame_data[1] = frame->type;
-	frame_data[2] = frame->orientation;
-	*((unsigned int*) &frame_data[3]) = htobe32(frame->input_count);
+	frame_data[0] = 0;
+	frame_data[0] &= MESSAGE_FRAME		<< 4;
+	frame_data[0] &= frame->type 		<< 3;
+	frame_data[0] &= frame->orientation << 2;
+	frame_data[0] &= frame->resizeable  << 1;
+	frame_data[0] &= frame->scrollable;
+
+	input_count   = htobe16(frame->input_count);
+	element_count = htobe16(frame->element_count);
+
+	memcpy(&frame_data[1] + 0, &input_count, sizeof(short));
+	memcpy(&frame_data[1] + 2, &element_count, sizeof(short));
 
 	// input types
-	unsigned int byte_index = 7;
+	unsigned int byte_index = 5;
 	for(unsigned int i = 0; i < frame->input_count; i++) {
 		frame_data[byte_index] = frame->inputs[i].type;
 		byte_index++;
@@ -424,6 +442,7 @@ void l_frame_send(Frame* frame, unsigned int client_index) {
 		*((unsigned int*) &frame_data[byte_index]) = frame->inputs[i].size;
 		byte_index += 4;
 	}
+	printf("byte index: %u, frame_size: %u\n", byte_index, frame_size);
 	
 	// send file
 	l_send(clients[client_index].socket_fd, frame_data, frame_size);
@@ -484,8 +503,7 @@ void l_poll() {
 		Frame* frame = clients[i].frame;
 		if(frame != NULL) {
 			if(clients[i].input_data != NULL)
-				for(unsigned int j = 0; j < frame->input_size; j++)
-					clients_data[current_byte + j] = clients[i].input_data[j];
+				memcpy(clients_data + current_byte, &clients[i].input_data[0], frame->input_size);
 
 			current_byte += frame->input_size;
 		}
@@ -502,6 +520,7 @@ Frame* l_frame_create(FrameType type, Orientation orientation, bool scrollable, 
 	frame->resizeable = resizeable;
 	frame->input_size = 0;
 	frame->input_count = 0;
+	frame->elements = NULL;
 	frame->element_size = 0;
 	frame->element_count = 0;
 
@@ -518,13 +537,14 @@ void l_frame_destroy(Frame* frame) {
 		}
 	}
 
-	free(frame->elements);
+	if(frame->elements != NULL)
+		free(frame->elements);
 	free(frame);
 }
 
 // TODO: verify this works
 void l_frame_input_add(Frame* frame, Input input) {
-	frame = realloc(frame, sizeof(Frame) + sizeof(Input)); // this might be expensive
+	frame = realloc(frame, sizeof(Frame) + frame->input_size + sizeof(Input)); // this might be expensive
 
 	frame->inputs[frame->input_count].type = input.type;
 	frame->inputs[frame->input_count].size = input.size;
@@ -533,17 +553,14 @@ void l_frame_input_add(Frame* frame, Input input) {
 	frame->input_size += input.size;
 }
 
-void l_frame_element_add(Frame* frame, Element element) {
-	printf("this is %u\n", frame->element_count);
-	printf("this is %u\n", frame->element_size);
-	frame->elements = realloc(frame->elements, frame->element_size + sizeof(Element) + element.size);
+void l_frame_element_add(Frame* frame, Element element, void* data) {
+	frame->elements = realloc(frame->elements, sizeof(Element) * frame->element_count + frame->element_size + sizeof(Element) + element.size);
 
-	printf("this is ok %u\n", frame->element_count);
-	printf("this is ok %u\n", frame->element_size);
 	frame->elements[frame->element_size].type = element.type;
 	frame->elements[frame->element_size].size = element.size;
-	for(unsigned int i = 0; i < element.size; i++)
-		frame->elements[frame->element_size].data[i] = element.data[i];
+
+	if(element.size > 0)
+		memcpy(&frame->elements[frame->element_size + 2], &element.data[0], element.size);
 
 	frame->element_count++;
 	frame->element_size += element.size + sizeof(Element);
@@ -551,9 +568,9 @@ void l_frame_element_add(Frame* frame, Element element) {
 
 void l_frame_print(Frame* frame) {
 	printf("orientation: %s\n", (frame->orientation == ORIENTATION_VERTICAL) ? "vertical" : "horizontal");
-	printf("type: %s\n", (frame->type == FRAME_STATIC) ? "static" : "dynamic");
-	printf("scrollable: %s\n", (frame->scrollable) ? "true" : "false");
-	printf("resizeable: %s\n", (frame->resizeable) ? "true" : "false");
+	printf("type: %s\n",		(frame->type == FRAME_STATIC) ? "static" : "dynamic");
+	printf("scrollable: %s\n", 	(frame->scrollable) ? "true" : "false");
+	printf("resizeable: %s\n", 	(frame->resizeable) ? "true" : "false");
 
 	for(unsigned int i = 0; i < frame->input_count; i++) {
 		printf("	%i Input: %i, length: %u\n", i, frame->inputs[i].type, frame->inputs[i].size);

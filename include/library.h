@@ -18,41 +18,10 @@ typedef enum {
 } FrameType;
 
 typedef enum {
-	INPUT_TEXT,
-	INPUT_BUTTON, // 1 when held, 0 when not
-	INPUT_BUTTON_SEND, // when pressed, sends frame to server
-	INPUT_TOGGLE, // toggles between on and off every press
-	INPUT_JOYSTICK,	// 2 float array
-	INPUT_GENERIC,	// byte array
-	INPUT_COUNT
-} InputType;
-
-typedef enum {
-	ELEMENT_TEXT,
-	ELEMENT_BREAK, // <br> in html
-	ELEMENT_LINE,
-	ELEMENT_HEADER1,
-	ELEMENT_HEADER2,
-	ELEMENT_HEADER3,
-	ELEMENT_IMAGE,
-} ElementType;
-
-typedef enum {
 	ORIENTATION_VERTICAL,
 	ORIENTATION_HORIZONTAL
 } Orientation;
 
-// TODO: move this to library_internal.h
-struct _Input {
-	InputType type;
-	unsigned int size; // size in bytes
-};
-
-struct _Element {
-	ElementType type;
-	unsigned int size; // size can be 0
-	unsigned char data[];
-};
 
 
 // Core library functions
@@ -69,6 +38,13 @@ extern int l_client_active(unsigned int client_index); // checks if the client i
 extern unsigned int l_client_active_count(); // returns number of active clients
 extern unsigned int l_client_max_count(); // returns number of maximum clients
 
+extern bool l_client_input_generic_get(unsigned int client_index, unsigned char input_index, void* value);
+extern bool l_client_input_text_get(unsigned int client_index, unsigned char input_index, char* value);
+extern bool l_client_input_button_get(unsigned int client_index, unsigned char input_index, bool* value);
+//extern bool l_client_input_submit_get(unsigned int client_index, unsigned char input_index, bool* value); shouldn't be able to get this one
+extern bool l_client_input_toggle_get(unsigned int client_index, unsigned char input_index, bool* value);
+extern bool l_client_input_joystick_get(unsigned int client_index, unsigned char input_index, float* x_value, float* y_value);
+
 extern Frame* l_frame_create(FrameType type, Orientation orientation, bool scrollable, bool resizeable);
 extern void l_frame_destroy(Frame* frame);
 extern Frame* l_frame_copy(Frame* frame); // create copy of existing frame, copy must be freed with frame_destroy
@@ -77,30 +53,67 @@ extern void l_frame_send(Frame* frame, unsigned int client_index); // sets frame
 extern void l_frame_default(Frame* frame); // set frame as default
 extern void l_frame_print(Frame* frame); // print contents of frame object
 
-extern void l_frame_input_add(Frame* frame, Input input); // add input to the frame
-extern void l_frame_element_add(Frame* frame, Element element); // adds an element to the frame
+extern void l_frame_input_generic_add(Frame* frame, unsigned int size); // a buffer of bytes
+extern void l_frame_input_text_add(Frame* frame, unsigned short max_chars);
+extern void l_frame_input_button_add(Frame* frame);
+extern void l_frame_input_submit_add(Frame* frame);
+extern void l_frame_input_toggle_add(Frame* frame);
+extern void l_frame_input_joystick_add(Frame* frame);
 
-extern Input l_input_generic_create(unsigned int size);
-extern Input l_input_text_create(unsigned short max_chars);
-extern Input l_input_button_create();
-extern Input l_input_submit_create();
-extern Input l_input_toggle_create();
-extern Input l_input_joystick_create();
+// BIG DILEMA, NOT SURE HOW TO DEAL WITH ELEMENTS
+extern void l_frame_text_add(Frame* frame, const char* string);
+extern void l_frame_h1_add(Frame* frame, const char* string);
+extern void l_frame_h2_add(Frame* frame, const char* string);
+extern void l_frame_h3_add(Frame* frame, const char* string);
+extern void l_frame_color_add(Frame* frame, unsigned char r, unsigned char g, unsigned char b);
+extern void l_frame_break_add(Frame* frame);
+extern void l_frame_line_add(Frame* frame);
 
-extern Element l_element_text_create(const char* string);
-extern Element l_element_h1_create(const char* string);
-extern Element l_element_h2_create(const char* string);
-extern Element l_element_h3_create(const char* string);
-extern Element l_element_break_create();
-extern Element l_element_line_create();
 
-extern int l_input_get_all(Input type, unsigned char index, void* data); // returns all input data from all clients for a specific input
-extern bool l_input_get(unsigned int client_index, InputType type, unsigned char index, unsigned char* data);
-extern bool l_input_text_get(unsigned int client_index, unsigned char input_index, char* value);
-extern bool l_input_button_get(unsigned int client_index, unsigned char input_index, unsigned char* value);
-extern bool l_input_submit_get(unsigned int client_index, unsigned char input_index, unsigned char* value);
-extern bool l_input_toggle_get(unsigned int client_index, unsigned char input_index, unsigned char* value);
-extern bool l_input_joystick_get(unsigned int client_index, unsigned char input_index, float* x_value, float* y_value);
+/*
+
+l_element_text_add(Frame* frame, const char* string);
+
+l_frame_text_add(Frame* frame, const char* string);
+l_frame_color_add(Frame* frame, unsigned char r, unsigned char g, unsigned char b);
+l_frame_color_set(Frame* frame, unsigned char input_index, unsigned char r, unsigned char g, unsigned char b);
+
+// create different teams
+---
+
+l_init(...);
+Frame* team1 = l_frame_create(...);
+l_frame_text_add(team1, "You are in team 1");
+l_frame_input_add(team1, l_input_joystick_create());
+l_frame_input_add(team1, l_input_button_create());
+l_frame_input_joystick_add(team1);
+
+// each team gets a "unique" frame
+Frame* team2 = l_frame_copy(team1);
+l_frame_text_set(team2, "You are in team 2");
+
+// wait for people to join
+sleep(5);
+
+for(int i = 0; i < l_client_active_count() / 2; i++) {
+	l_frame_send(team1, i);
+}
+
+for(int i = l_client_active_count(); i > l_client_active_count() / 2; i--) {
+	l_frame_send(team2, i);
+}
+
+... game
+
+l_client_input_joystick_get(unsigned int client_index, unsigned char input_index, float* x_value, float* y_value);
+l_client_input_text_get(unsigned int client_index, unsigned char input_index, unsigned char* value);
+
+
+---
+
+
+*/
+
 
 
 

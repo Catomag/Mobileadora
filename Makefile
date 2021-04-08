@@ -9,7 +9,7 @@ all: server
 again: clean server
 
 server: $(OBJ)
-	clang -W $^ -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
+	clang -W /usr/lib/Gaia/Hephaestus.so $^ -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
 
 bin/%.o : src/%.c
 	clang $(INCLUDE) $(CFLAGS) -c $< -o $@

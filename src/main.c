@@ -6,13 +6,17 @@
 #include <raylib.h>
 #include <math.h>
 
+#define _H_DEBUG_MEMORY_
+#include <Gaia/Hephaestus.h>
+
 #define PLAYER_COUNT 60
 #define WIDTH 1248
 #define HEIGHT 720
 
 // RULES
 //#define WALLS
-#define WRAP_SELF
+//#define WRAP_SELF
+#define RESPAWN
 
 #define CELL_SIZE 8 
 
@@ -22,7 +26,7 @@
 #define DEFAULT_SPEED 5
 #define BOOST_SPEED 2
 
-#define PELLET_COUNT 60
+#define PELLET_COUNT 160
 #define MAX_LENGTH 300
 
 typedef struct {
@@ -81,25 +85,27 @@ int main() {
 	l_init(PLAYER_COUNT, 8000);
 
 	Frame* main_frame = l_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL, false, false);
-	printf("this ran\n");
-	l_frame_input_add(main_frame, l_input_joystick_create());
-	printf("this ran\n");
-	l_frame_input_add(main_frame, l_input_button_create());
+	l_frame_input_joystick_add(main_frame);
+	l_frame_input_button_add(main_frame);
 
-	printf("this ran\n");
-	Element br;
-	br.type = ELEMENT_BREAK;
-	br.size = 0;
-
-	printf("this ran\n");
-	Element text;
-	br.type = ELEMENT_TEXT;
-	br.size = 5;
-
-//	l_frame_element_add(main_frame, text);
+//	Element br;
+//	br.type = ELEMENT_BREAK;
+//	br.size = 0;
+//
+//	// this is how data has to be included in element
+//	Element* text = malloc(sizeof(Element) + 5);
+//	br.type = ELEMENT_TEXT;
+//	br.size = 5;
+//	br.data[0] = 'h';
+//	br.data[1] = 'e';
+//	br.data[2] = 'l';
+//	br.data[3] = 'l';
+//	br.data[4] = 'o';
+//
+//	l_frame_element_add(main_frame, *text);
+//	free(text);
 //	l_frame_element_add(main_frame, br);
 //	l_frame_element_add(main_frame, br);
-	printf("this ran\n");
 	
 	// do stuff with data
 	l_frame_print(main_frame);
@@ -133,8 +139,9 @@ int main() {
 					float delta = GetFrameTime();
 
 					bool b1 = 0;
-					l_input_button_get(i, 0, (unsigned char*) &b1);
+					l_client_input_button_get(i, 0, (unsigned char*) &b1);
 					if(b1) {
+						printf("button pressed\n");
 //						players[i].speed
 
 						if(players[i].color.a >= 200 && players[i].sped == 0)
@@ -156,7 +163,7 @@ int main() {
 					// movement
 					float j1_x;
 					float j1_y;
-					if( l_input_joystick_get(i, 0, &j1_x, &j1_y) && 
+					if( l_client_input_joystick_get(i, 0, &j1_x, &j1_y) && 
 						((tick % DEFAULT_SPEED == 0 && !players[i].sped) || (tick % BOOST_SPEED == 0 && players[i].sped))) {
 
 						if(j1_x > .5f)
@@ -208,7 +215,6 @@ int main() {
 						else if(players[i].y[0] > BOARD_HEIGHT)
 							players[i].alive = 0;
 #endif
-
 					}
 
 
@@ -228,50 +234,62 @@ int main() {
 					for(int j = 0; j < PLAYER_COUNT; j++) {
 #ifdef WRAP_SELF
 						if(l_client_active(j) && j != i) {
-#else
-						if(l_client_active(j)) {
 #endif
-							for(unsigned int k = 1; k < players[j].thicc; k++) {
-								if( players[i].x[0] == players[j].x[k] &&
-									players[i].y[0] == players[j].y[k]) {
-									players[i].alive = 0;
+							if(l_client_active(j)) {
+								for(unsigned int k = 1; k < players[j].thicc; k++) {
+									if( players[i].x[0] == players[j].x[k] &&
+										players[i].y[0] == players[j].y[k] && players[j].color.a > 100) {
+										players[i].alive = 0;
+									}
 								}
 							}
 						}
+#ifdef WRAP_SELF
 					}
+#endif
 				}
+#ifdef RESPAWN
+				else if(l_client_active(i)) {
+					players[i].thicc = 3;
+					players[i].alive = 1;
+					players[i].color.a = 20;
+				}
+#endif
+			}
+		}
+
+		ClearBackground(BLACK);
+		BeginDrawing();
+
+		// draw board
+		for(int x = 0; x < BOARD_WIDTH; x++)
+			for(int y = 0; y < BOARD_HEIGHT; y++)
+				DrawRectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, (((y * BOARD_WIDTH + x) + y) % 2 == 0) ? BLACK : (Color) { 20, 20, 20, 255 });
+
+		// draw pellets
+		float glow[4] = {
+			(sin(GetTime() + 0.f) + 1.5f) / 2.5f,
+			(sin(GetTime() + 2.f) + 1.5f) / 2.5f,
+			(sin(GetTime() + 4.f) + 1.5f) / 2.5f,
+			(sin(GetTime() + 8.f) + 1.5f) / 2.5f,
+		};
+
+		for(int i = 0; i < PELLET_COUNT; i++)
+			DrawRectangle(pellets[i].x * CELL_SIZE, pellets[i].y * CELL_SIZE, CELL_SIZE, CELL_SIZE, (Color) { 255, 0, 0, 255 * glow[i % 4] });
+
+		// draw snaks
+		for(int i = 0; i < PLAYER_COUNT; i++)
+			if(l_client_active(i)) {
+				for(int j = players[i].thicc - 1; j >= 0; j--)
+					DrawRectangle(((short) players[i].x[j]) * CELL_SIZE, ((short)players[i].y[j]) * CELL_SIZE, CELL_SIZE, CELL_SIZE, players[i].color);
 			}
 
-			ClearBackground(BLACK);
-			BeginDrawing();
-
-			// draw board
-			for(int x = 0; x < BOARD_WIDTH; x++)
-				for(int y = 0; y < BOARD_HEIGHT; y++)
-					DrawRectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, (((y * BOARD_WIDTH + x) + y) % 2 == 0) ? BLACK : (Color) { 20, 20, 20, 255 });
-
-			// draw pellets
-			float glow[4] = {
-				(sin(GetTime() + 0.f) + 1.5f) / 2.5f,
-				(sin(GetTime() + 2.f) + 1.5f) / 2.5f,
-				(sin(GetTime() + 4.f) + 1.5f) / 2.5f,
-				(sin(GetTime() + 8.f) + 1.5f) / 2.5f,
-			};
-
-			for(int i = 0; i < PELLET_COUNT; i++)
-				DrawRectangle(pellets[i].x * CELL_SIZE, pellets[i].y * CELL_SIZE, CELL_SIZE, CELL_SIZE, (Color) { 255, 0, 0, 255 * glow[i % 4] });
-
-			// draw snaks
-			for(int i = 0; i < PLAYER_COUNT; i++)
-				if(l_client_active(i)) {
-					for(int j = players[i].thicc - 1; j >= 0; j--)
-						DrawRectangle(((short) players[i].x[j]) * CELL_SIZE, ((short)players[i].y[j]) * CELL_SIZE, CELL_SIZE, CELL_SIZE, players[i].color);
-				}
-
-			EndDrawing();
-		}
+		EndDrawing();
 	}
 
 	CloseWindow();
 	l_frame_destroy(main_frame);
+	l_free();
+	h_debug_log_history();
+	h_debug_log_free();
 }

@@ -6,18 +6,32 @@
 #include <assert.h>
 
 // input definitions
-const Input JOYSTICK = {
-	INPUT_JOYSTICK,
-	sizeof(float) * 2
-};
-
 const Input BUTTON = {
 	INPUT_BUTTON,
 	sizeof(unsigned char)
 };
 
+const Input SUBMIT = {
+	INPUT_BUTTON_SEND,
+	0
+};
+
+const Input TOGGLE = {
+	INPUT_BUTTON,
+	sizeof(unsigned char)
+};
+
+const Input JOYSTICK = {
+	INPUT_JOYSTICK,
+	sizeof(float) * 2
+};
+
+
 // TODO: revise this, using clients_data right now so that new data is only accessed when l_poll occurs
-bool l_input_get(unsigned int client_index, InputType type, unsigned char input_index, unsigned char* data) {
+bool l_input_get(unsigned int client_index, InputType type, unsigned char input_index, void* data) {
+	if(clients[client_index].input_data == NULL)
+		return 0;
+
 //	unsigned long index = 0;
 //	unsigned int input_size_sum = 0;
 //	unsigned char inputs_of_type_count = 0;
@@ -49,12 +63,9 @@ bool l_input_get(unsigned int client_index, InputType type, unsigned char input_
 		if(clients[client_index].frame->inputs[i].type == type) {
 			if(input_index == current_index) {
 				unsigned int input_size = clients[client_index].frame->inputs[i].size;
+				if(data != NULL)
+					memcpy(data, &clients[client_index].input_data[current_byte], input_size);
 
-				for(int j = 0; j < input_size; j++) {
-					//printf("	%i\n", clients[client_index].input_data[j]);
-				}
-
-				memcpy(data, &clients[client_index].input_data[current_byte], input_size);
 				return 1;
 			}
 			current_index++;
@@ -65,21 +76,89 @@ bool l_input_get(unsigned int client_index, InputType type, unsigned char input_
 }
 
 
-Input l_input_joystick_create() {
-	return JOYSTICK;
+
+
+
+
+// Frame input declarations
+
+
+void l_frame_input_generic_add(Frame* frame, unsigned int size) {
+	Input input;
+	input.type = INPUT_GENERIC;
+	input.size = size;
+	l_frame_input_add(frame, input);
 }
 
-bool l_input_joystick_get(unsigned int client_index, unsigned char input_index, float* x_value, float* y_value) {
-	if(clients[client_index].input_data == NULL)
-		return 0;
+void l_frame_input_text_add(Frame* frame, unsigned short max_chars) {
+	Input input;
+	input.type = INPUT_TEXT;
+	input.size = max_chars + 1;
+	l_frame_input_add(frame, input);
+}
 
+void l_frame_input_button_add(Frame* frame) {
+	l_frame_input_add(frame, BUTTON);
+}
+
+void l_frame_input_submit_add(Frame* frame) {
+	l_frame_input_add(frame, SUBMIT);
+}
+
+void l_frame_input_toggle_add(Frame* frame) {
+	l_frame_input_add(frame, TOGGLE);
+}
+
+void l_frame_input_joystick_add(Frame* frame) {
+	l_frame_input_add(frame, JOYSTICK);
+}
+
+
+// Client input declarations
+bool l_client_input_generic_get(unsigned int client_index, unsigned char input_index, void* value) {
+	if(l_input_get(client_index, INPUT_GENERIC, input_index, NULL)) {
+		l_input_get(client_index, INPUT_GENERIC, input_index, value);
+		return 1;
+	}
+	else
+		return 0;
+}
+
+bool l_client_input_text_get(unsigned int client_index, unsigned char input_index, char* value) {
+	if(l_input_get(client_index, INPUT_TEXT, input_index, NULL)) {
+		l_input_get(client_index, INPUT_TEXT, input_index, (unsigned char*) value);
+		return 1;
+	}
+	else
+		return 0;
+}
+
+bool l_client_input_button_get(unsigned int client_index, unsigned char input_index, bool* value) {
+	bool data;
+	if(l_input_get(client_index, INPUT_BUTTON, input_index, &data)) {
+		*value = data;
+		return 1;
+	}
+	else
+		return 0;
+}
+
+bool l_client_input_toggle_get(unsigned int client_index, unsigned char input_index, bool* value) {
+	bool data;
+	if(l_input_get(client_index, INPUT_TOGGLE, input_index, &data)) {
+		*value = data;
+		return 1;
+	}
+	else
+		return 0;
+}
+
+bool l_client_input_joystick_get(unsigned int client_index, unsigned char input_index, float* x_value, float* y_value) {
 	// should probably find a better approach
 	unsigned char data[JOYSTICK.size];
 	if(l_input_get(client_index, INPUT_JOYSTICK, input_index, data)) {
 		*x_value = *((float*) &data[0]);
 		*y_value = *((float*) &data[4]);
-//		printf("x: %f, ", *x_value);
-//		printf("y: %f\n", *y_value);
 
 		if(*x_value > .99)
 			*x_value = 1;
@@ -91,23 +170,6 @@ bool l_input_joystick_get(unsigned int client_index, unsigned char input_index, 
 		else if(*y_value < -.99)
 			*y_value = -1;
 
-		return 1;
-	}
-	else
-		return 0;
-}
-
-Input l_input_button_create() {
-	return BUTTON;
-}
-
-bool l_input_button_get(unsigned int client_index, unsigned char input_index, unsigned char* value) {
-	if(clients[client_index].input_data == NULL)
-		return 0;
-
-	unsigned char data;
-	if(l_input_get(client_index, INPUT_BUTTON, input_index, &data)) {
-		*value = data;
 		return 1;
 	}
 	else

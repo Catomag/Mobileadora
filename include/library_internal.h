@@ -2,23 +2,54 @@
 #include "library.h"
 #include <pthread.h>
 
+// max 16
 typedef enum {
 	MESSAGE_FRAME,
-	MESSAGE_INPUT,
-	MESSAGE_MEDIA
+	MESSAGE_INPUT_REQUEST,
 } MessageType;
+
+typedef enum {
+	INPUT_TEXT,
+	INPUT_BUTTON, // 1 when held, 0 when not
+	INPUT_BUTTON_SEND, // when pressed, sends frame to server
+	INPUT_TOGGLE, // toggles between on and off every press
+	INPUT_JOYSTICK,	// 2 float array
+	INPUT_GENERIC,	// byte array
+	INPUT_COUNT
+} InputType;
+
+struct _Input {
+	InputType type;
+	unsigned int size; // size in bytes
+};
+
+typedef enum {
+	ELEMENT_TEXT,
+	ELEMENT_BREAK, // <br> in html
+	ELEMENT_LINE,
+	ELEMENT_HEADER1,
+	ELEMENT_HEADER2,
+	ELEMENT_HEADER3,
+	ELEMENT_IMAGE,
+} ElementType;
+
+struct _Element {
+	ElementType type;
+	unsigned int size; // size can be 0
+	unsigned char data[];
+};
 
 struct _Frame {
 	FrameType type;
 	Orientation orientation;
 	bool scrollable;
 	bool resizeable;
-	unsigned int input_count;
+	unsigned short input_count;
 	unsigned int input_size;
-	unsigned int element_count;
+	unsigned short element_count;
 	unsigned int element_size;
 	Element* elements; // Elements begin at elements[input_size]
-	// inputs are allocated with frame struct to improve cache coherency, since input data is often accessed with frame data
+	// inputs are allocated with frame struct to reduce cache misses, since input data is often accessed with frame data
 	Input inputs[];
 };
 
@@ -30,19 +61,27 @@ typedef struct {
 	unsigned char* input_data; // current values for each input
 } Client;
 
+
+
+
 // Randomly necessary for websocket handshake
-void hash_to_base64(unsigned char* data, char* output);
+extern void hash_to_base64(unsigned char* data, char* output);
 
-void l_send(int socket, void* data, unsigned long size); // sends a websocket
+extern void l_send(int socket, void* data, unsigned long size); // sends a websocket
 
-void* l_client_handler(void* data);
-void* l_client_accept_loop(void* data);
+extern void* l_client_handler(void* data);
+extern void* l_client_accept_loop(void* data);
+
+extern void l_frame_input_add(Frame* frame, Input input); // add input to the frame
+extern void l_frame_element_add(Frame* frame, Element element, void* data); // adds an element to the frame
+
+extern bool l_input_get(unsigned int client_index, InputType type, unsigned char index, void* data);
 
 
 extern Client* clients;
 extern unsigned int clients_count;
 extern unsigned int clients_size;
-extern unsigned char* clients_data; // not meant to be easily read, use l_input_get to retrieve data
+extern void* clients_data; // not meant to be read directly, use l_input_get to retrieve data
 extern unsigned long clients_data_size;
 
 extern Frame* default_frame;
