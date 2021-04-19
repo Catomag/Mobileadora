@@ -16,7 +16,7 @@ bin/%.o : src/%.c
 
 clean:
 	rm -f bin/*.o
-	rm server
+	rm -f server
 
 install:
 	echo "Can't install surry"

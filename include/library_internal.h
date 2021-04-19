@@ -30,13 +30,12 @@ typedef enum {
 	ELEMENT_HEADER1,
 	ELEMENT_HEADER2,
 	ELEMENT_HEADER3,
-	ELEMENT_IMAGE,
+	ELEMENT_COLOR, // a little colored square
 } ElementType;
 
 struct _Element {
 	ElementType type;
 	unsigned int size; // size can be 0
-	unsigned char data[];
 };
 
 struct _Frame {
@@ -48,7 +47,9 @@ struct _Frame {
 	unsigned int input_size;
 	unsigned short element_count;
 	unsigned int element_size;
+	unsigned int element_allocated;
 	Element* elements; // Elements begin at elements[input_size]
+	void* element_data;
 	// inputs are allocated with frame struct to reduce cache misses, since input data is often accessed with frame data
 	Input inputs[];
 };
@@ -67,21 +68,22 @@ typedef struct {
 // Randomly necessary for websocket handshake
 extern void hash_to_base64(unsigned char* data, char* output);
 
-extern void l_send(int socket, void* data, unsigned long size); // sends a websocket
+extern void ma_send(int socket, void* data, unsigned long size); // sends a websocket
 
-extern void* l_client_handler(void* data);
-extern void* l_client_accept_loop(void* data);
+extern void* ma_client_handler(void* data);
+extern void* ma_client_accept_loop(void* data);
 
-extern void l_frame_input_add(Frame* frame, Input input); // add input to the frame
-extern void l_frame_element_add(Frame* frame, Element element, void* data); // adds an element to the frame
+extern void ma_frame_input_add(Frame* frame, Input input); // add input to the frame
+extern void ma_frame_element_add(Frame* frame, Element element, void* data); // adds an element to the frame
+extern void ma_frame_element_set(Frame* frame, Element element, unsigned char index, void* data); // changes the data of an element at given index
 
-extern bool l_input_get(unsigned int client_index, InputType type, unsigned char index, void* data);
+extern bool ma_input_get(unsigned int client_index, InputType type, unsigned char index, void* data);
 
 
 extern Client* clients;
 extern unsigned int clients_count;
 extern unsigned int clients_size;
-extern void* clients_data; // not meant to be read directly, use l_input_get to retrieve data
+extern void* clients_data; // not meant to be read directly, use ma_input_get to retrieve data
 extern unsigned long clients_data_size;
 
 extern Frame* default_frame;

@@ -82,11 +82,16 @@ void reset() {
 // Simple form
 int main() {
 
-	l_init(PLAYER_COUNT, 8000);
+	ma_init(PLAYER_COUNT, 8000);
 
-	Frame* main_frame = l_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL, false, false);
-	l_frame_input_joystick_add(main_frame);
-	l_frame_input_button_add(main_frame);
+	// TODO: fix bug where creating an element before any input causes frame->input_count to fucking explode
+
+	Frame* main_frame = ma_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL, false, false);
+//	ma_frame_element_h1_add(main_frame, "this is masterchef, cortana where are you????");
+	ma_frame_input_joystick_add(main_frame);
+	ma_frame_element_text_add(main_frame, "omg, masterchef?");
+//	ma_frame_input_button_add(main_frame);
+	ma_frame_element_text_add(main_frame, "Hello gamers, what is up?");
 
 //	Element br;
 //	br.type = ELEMENT_BREAK;
@@ -102,14 +107,21 @@ int main() {
 //	br.data[3] = 'l';
 //	br.data[4] = 'o';
 //
-//	l_frame_element_add(main_frame, *text);
+//	ma_frame_element_add(main_frame, *text);
 //	free(text);
-//	l_frame_element_add(main_frame, br);
-//	l_frame_element_add(main_frame, br);
+//	ma_frame_element_add(main_frame, br);
+//	ma_frame_element_add(main_frame, br);
 	
 	// do stuff with data
-	l_frame_print(main_frame);
-	l_frame_default(main_frame);
+	ma_frame_print(main_frame);
+	ma_frame_default(main_frame);
+
+
+	ma_frame_destroy(main_frame);
+	ma_free();
+	h_debug_log_history();
+
+	return 0;
 
 	InitWindow(WIDTH, HEIGHT, "testapp");
 	
@@ -135,17 +147,13 @@ int main() {
 			time = 0;
 
 			for(int i = 0; i < PLAYER_COUNT; i++) {
-				if(l_client_active(i) && players[i].alive) {
-					float delta = GetFrameTime();
-
+				if(ma_client_active(i) && players[i].alive) {
 					bool b1 = 0;
-					l_client_input_button_get(i, 0, (unsigned char*) &b1);
+					ma_client_input_button_get(i, 0, (unsigned char*) &b1);
 					if(b1) {
-						printf("button pressed\n");
-//						players[i].speed
-
 						if(players[i].color.a >= 200 && players[i].sped == 0)
 							players[i].sped = 1;
+
 						//player_increase_length(&players[i], 1);
 					}
 					else
@@ -163,7 +171,7 @@ int main() {
 					// movement
 					float j1_x;
 					float j1_y;
-					if( l_client_input_joystick_get(i, 0, &j1_x, &j1_y) && 
+					if( ma_client_input_joystick_get(i, 0, &j1_x, &j1_y) && 
 						((tick % DEFAULT_SPEED == 0 && !players[i].sped) || (tick % BOOST_SPEED == 0 && players[i].sped))) {
 
 						if(j1_x > .5f)
@@ -233,9 +241,9 @@ int main() {
 
 					for(int j = 0; j < PLAYER_COUNT; j++) {
 #ifdef WRAP_SELF
-						if(l_client_active(j) && j != i) {
+						if(ma_client_active(j) && j != i) {
 #endif
-							if(l_client_active(j)) {
+							if(ma_client_active(j)) {
 								for(unsigned int k = 1; k < players[j].thicc; k++) {
 									if( players[i].x[0] == players[j].x[k] &&
 										players[i].y[0] == players[j].y[k] && players[j].color.a > 100) {
@@ -249,7 +257,7 @@ int main() {
 #endif
 				}
 #ifdef RESPAWN
-				else if(l_client_active(i)) {
+				else if(ma_client_active(i)) {
 					players[i].thicc = 3;
 					players[i].alive = 1;
 					players[i].color.a = 20;
@@ -279,7 +287,7 @@ int main() {
 
 		// draw snaks
 		for(int i = 0; i < PLAYER_COUNT; i++)
-			if(l_client_active(i)) {
+			if(ma_client_active(i)) {
 				for(int j = players[i].thicc - 1; j >= 0; j--)
 					DrawRectangle(((short) players[i].x[j]) * CELL_SIZE, ((short)players[i].y[j]) * CELL_SIZE, CELL_SIZE, CELL_SIZE, players[i].color);
 			}
@@ -288,8 +296,8 @@ int main() {
 	}
 
 	CloseWindow();
-	l_frame_destroy(main_frame);
-	l_free();
+	ma_frame_destroy(main_frame);
+	ma_free();
 	h_debug_log_history();
 	h_debug_log_free();
 }
