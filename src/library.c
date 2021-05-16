@@ -155,7 +155,7 @@ void* l_client_handler(void* data) {
 //
 //
 //					float yaw = payload[2];
-//					printf("%f, %f\n\n", *((float*) &payload[2]), *((float*) &payload[6]));
+////					printf("%f, %f\n\n", *((float*) &payload[2]), *((float*) &payload[6]));
 //
 //					printf("payload length: %u\n", payload_length);
 //					printf("input size: %u\n", clients[i].frame->input_size);
@@ -348,40 +348,30 @@ void l_free() {
 
 void l_send(int socket, void* data, unsigned long size) {
 	unsigned char header[2];
-	header[0] = 0x80;
-	header[0] = header[0] | 2;
+	header[0] = 0x82;
 
 	// assumes message is never fragmented
 
+	unsigned char payload[size];
 	uint64_t payload_length_size = 0;
-	payload_length_size += (size > 125 && size <= 0xffff) * 0xffff;
-	payload_length_size += (size > 0xffff && size <= 0xffffffffffffffff) * 0xffffffffffffffff;
-
-	unsigned char payload[payload_length_size + size];
 
 	if(size < 126) {
-			header[1] = size;
+		header[1] = size;
 	}
-	else if(size < 65536) {
-			header[1] = 126;
-			payload[0] = size;
-			payload_length_size = 2;
+	else if(size < 0xffff) {
+		header[1] = 126;
+		payload_length_size = 2;
 	}
 	else {
-			header[1] = 127;
-			payload[0] = size;
-			payload_length_size = 8;
+		header[1] = 127;
+		payload_length_size = 8;
 	}
 
 	for(uint64_t i = 0; i < size; i++)
-			payload[payload_length_size + i] = (unsigned char) ((unsigned char*)data)[i];
-
-	uint64_t payload_length_buf = 0;
-	// TODO: revise this, pretty sure that this part is already taken care of 8 and 13 lines above
-	payload_length_buf = htobe64(size);
+		payload[i] = (unsigned char) ((unsigned char*)data)[i];
 
 	send(socket, header, 2, MSG_NOSIGNAL);
-	send(socket, &payload_length_buf, payload_length_size, MSG_NOSIGNAL);
+	send(socket, &size, payload_length_size, MSG_NOSIGNAL);
 	send(socket, payload, size, MSG_NOSIGNAL);
 }
 
@@ -389,7 +379,7 @@ void l_send(int socket, void* data, unsigned long size) {
 //
 // |--------------------------HEADER----------------------------------------------------------------------------------|---------INPUT-0-0-------|---INPUT-N---|--repeat for elem->
 // [[type_header]-[frame_type]-[frame_orientation]-[frame_resizeable]-[frame_scrollable]-[input_count]-[element_count] [input_type]-[input-size] [    ...    ]]
-//	4 bits,	   	  1 bit,	   1 bit,			   1 bit,	 	 	  1 bit			 	 2 bytes,	   2 bytes			 4 bytes,	  5 bytes.	
+//	4 bits,	   	  1 bit,	   1 bit,			   1 bit,	 	 	  1 bit			 	 1 bytes,	   1 bytes			 1 bytes,	  4 bytes.	
 //
 // |------------------------------------------------------------------------------------------------------------------|-------------------------|-------------|
 
@@ -412,29 +402,29 @@ void l_frame_send(Frame* frame, unsigned int client_index) {
 	clients[client_index].frame = frame;
 	
 	// construct file
-	unsigned short input_count   = frame->input_count;
-	unsigned short element_count = frame->element_count;
+	unsigned char input_count   = frame->input_count;
+	unsigned char element_count = frame->element_count;
 
-	// 5 bytes for header, 5 bytes per input, 5 byte per element and element size because of internal data stored
-	unsigned int frame_size = 5 + (input_count * 5) + (element_count * 5 + frame->element_size);
+	// 3 bytes for header, 5 bytes per input, 5 byte per element and element size because of internal data stored
+	unsigned int frame_size = 3 + (input_count * 5) + (element_count * 5 + frame->element_size);
 	unsigned char* frame_data = malloc(frame_size);
 
 	// header
 	frame_data[0] = 0;
-	frame_data[0] &= MESSAGE_FRAME		<< 4;
-	frame_data[0] &= frame->type 		<< 3;
-	frame_data[0] &= frame->orientation << 2;
-	frame_data[0] &= frame->resizeable  << 1;
-	frame_data[0] &= frame->scrollable;
+	frame_data[0] |= MESSAGE_FRAME		<< 4;
+	frame_data[0] |= frame->type 		<< 3;
+	frame_data[0] |= frame->orientation << 2;
+	frame_data[0] |= frame->resizeable  << 1;
+	frame_data[0] |= frame->scrollable;
 
-	input_count   = htobe16(frame->input_count);
-	element_count = htobe16(frame->element_count);
+	input_count   = frame->input_count;
+	element_count = frame->element_count;
 
-	memcpy(&frame_data[1] + 0, &input_count, sizeof(short));
-	memcpy(&frame_data[1] + 2, &element_count, sizeof(short));
+	memcpy(&frame_data[1], &input_count, sizeof(char));
+	memcpy(&frame_data[2], &element_count, sizeof(char));
 
 	// input types
-	unsigned int byte_index = 5;
+	unsigned int byte_index = 3;
 	for(unsigned int i = 0; i < frame->input_count; i++) {
 		frame_data[byte_index] = frame->inputs[i].type;
 		byte_index++;
@@ -518,6 +508,7 @@ Frame* l_frame_create(FrameType type, Orientation orientation, bool scrollable, 
 	frame->orientation = orientation;
 	frame->scrollable = scrollable;
 	frame->resizeable = resizeable;
+	frame->inputs = NULL;
 	frame->input_size = 0;
 	frame->input_count = 0;
 	frame->elements = NULL;
@@ -537,14 +528,18 @@ void l_frame_destroy(Frame* frame) {
 		}
 	}
 
+	if(frame->inputs != NULL)
+		free(frame->inputs);
+
 	if(frame->elements != NULL)
 		free(frame->elements);
+
 	free(frame);
 }
 
 // TODO: verify this works
 void l_frame_input_add(Frame* frame, Input input) {
-	frame = realloc(frame, sizeof(Frame) + frame->input_size + sizeof(Input)); // this might be expensive
+	frame->inputs = realloc(frame->inputs, sizeof(Input) * (frame->input_count + 1)); // this might be expensive
 
 	frame->inputs[frame->input_count].type = input.type;
 	frame->inputs[frame->input_count].size = input.size;

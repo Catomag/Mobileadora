@@ -84,9 +84,10 @@ int main() {
 
 	l_init(PLAYER_COUNT, 8000);
 
-	Frame* main_frame = l_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL, false, false);
+	Frame* main_frame = l_frame_create(FRAME_DYNAMIC, ORIENTATION_HORIZONTAL, false, false);
+	for(int i = 0; i < 3; i++)
+		l_frame_input_button_add(main_frame);
 	l_frame_input_joystick_add(main_frame);
-	l_frame_input_button_add(main_frame);
 
 //	Element br;
 //	br.type = ELEMENT_BREAK;
@@ -140,16 +141,23 @@ int main() {
 
 					bool b1 = 0;
 					l_client_input_button_get(i, 0, (unsigned char*) &b1);
+
+
 					if(b1) {
 						printf("button pressed\n");
 //						players[i].speed
 
 						if(players[i].color.a >= 200 && players[i].sped == 0)
 							players[i].sped = 1;
-						//player_increase_length(&players[i], 1);
 					}
 					else
 						players[i].sped = 0;
+
+					bool b2 = 0;
+					l_client_input_button_get(i, 1, (unsigned char*) & b2);
+					if(b2) {
+						player_increase_length(&players[i], 1);
+					}
 
 					if(players[i].sped)
 						players[i].color.a -= 2;

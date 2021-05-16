@@ -5,6 +5,8 @@
 #include <netdb.h>
 #include <assert.h>
 
+#include <Gaia/Hephaestus.h>
+
 // input definitions
 const Input BUTTON = {
 	INPUT_BUTTON,
@@ -59,7 +61,8 @@ bool l_input_get(unsigned int client_index, InputType type, unsigned char input_
 	unsigned char current_index = 0;
 	unsigned long current_byte = 0;
 
-	for(unsigned char i = 0; i < clients[client_index].frame->input_count; i++) {
+	//h_debug_println();
+	for(unsigned int i = 0; i < clients[client_index].frame->input_count; i++) {
 		if(clients[client_index].frame->inputs[i].type == type) {
 			if(input_index == current_index) {
 				unsigned int input_size = clients[client_index].frame->inputs[i].size;

@@ -5,6 +5,7 @@
 #ifndef bool
 typedef unsigned char bool;
 #endif
+
 typedef struct _Frame Frame;
 typedef struct _Input Input;
 typedef struct _Element Element;

@@ -30,7 +30,7 @@ typedef enum {
 	ELEMENT_HEADER1,
 	ELEMENT_HEADER2,
 	ELEMENT_HEADER3,
-	ELEMENT_IMAGE,
+	ELEMENT_IMAGE, // image url
 } ElementType;
 
 struct _Element {
@@ -44,13 +44,13 @@ struct _Frame {
 	Orientation orientation;
 	bool scrollable;
 	bool resizeable;
-	unsigned short input_count;
+	unsigned char input_count;
 	unsigned int input_size;
-	unsigned short element_count;
+	unsigned char element_count;
 	unsigned int element_size;
 	Element* elements; // Elements begin at elements[input_size]
 	// inputs are allocated with frame struct to reduce cache misses, since input data is often accessed with frame data
-	Input inputs[];
+	Input* inputs;
 };
 
 typedef struct {
