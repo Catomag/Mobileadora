@@ -66,20 +66,9 @@ void hash_to_base64(unsigned char* data, char* output) {
 	output[27] = '=';
 }
 
-void reverseEndianness(const long long int size, void* value){
-    int i;
-    char result[32];
-    for( i=0; i<size; i+=1 ){
-        result[i] = ((char*)value)[size-i-1];
-    }
-    for( i=0; i<size; i+=1 ){
-        ((char*)value)[i] = result[i];
-    }
-}
-
 // TODO: maybe add support for multiple dataframes
 // TODO: clients_count should be clients_size in all these loops
-void* l_client_handler(void* data) {
+void* ma_client_handler(void* data) {
 	struct timespec delay;
 	delay.tv_nsec = 5 * 1000000; // TODO: remember, 20ms of artificial delay
 	delay.tv_sec = 0;
@@ -89,14 +78,15 @@ void* l_client_handler(void* data) {
 	unsigned char* payload = malloc(sizeof(unsigned char) * payload_size);
 
 	while(server_running) {
-		struct pollfd pollfds[clients_count];
-		for(uint i = 0; i < clients_count; i++) {
+
+		struct pollfd pollfds[clients_size];
+		for(uint i = 0; i < clients_size; i++) {
 			pollfds[i].fd = clients[i].socket_fd;
 			pollfds[i].events = POLLIN | POLLOUT;
 		}
-		poll(pollfds, clients_count, 5);
+		poll(pollfds, clients_size, 5);
 
-		for(uint i = 0; i < clients_count; i++) {
+		for(uint i = 0; i < clients_size; i++) {
 			if(clients[i].active && (pollfds[i].revents & POLLIN) && (pollfds[i].revents & POLLOUT)) {
 				// receive dataframe
 				unsigned char header[2];
@@ -190,15 +180,18 @@ void* l_client_handler(void* data) {
 		nanosleep(&delay, &remaining); // sleep for 20ms, or CPU will explode
 	}
 
-	for(int i = 0; i < clients_count; i++)
+	for(int i = 0; i < clients_size; i++)
 		if(clients[i].active)
 			close(clients[i].socket_fd);
 
-	free(payload);
+	if(payload != NULL) {
+		free(payload);
+		payload = NULL;
+	}
 	return 0;
 }
 
-void* l_client_accept_loop(void* data) {
+void* ma_client_accept_loop(void* data) {
 	while(server_running) {
 		while(clients_count < clients_size) {
 			int client_fd;
@@ -271,7 +264,7 @@ void* l_client_accept_loop(void* data) {
 						clients[i].active = 1;
 						clients[i].socket_fd = client_fd;
 
-						l_frame_send(clients[i].frame, i);
+						ma_frame_send(clients[i].frame, i);
 						break;
 					}
 				}
@@ -285,7 +278,7 @@ void* l_client_accept_loop(void* data) {
 	return 0;
 }
 
-void l_init(unsigned int max_clients, unsigned short port) {
+void ma_init(unsigned int max_clients, unsigned short port) {
 	server_running = 1;
 
 	printf("this ran\n");
@@ -303,7 +296,7 @@ void l_init(unsigned int max_clients, unsigned short port) {
 
 	printf("Launching client handler\n");
 	// launch client handler
-	pthread_create(&client_thread, NULL, l_client_handler, NULL);
+	pthread_create(&client_thread, NULL, ma_client_handler, NULL);
 
 	// launch server
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -337,16 +330,20 @@ void l_init(unsigned int max_clients, unsigned short port) {
 
 	// start accept loop
 	pthread_t accept_loop;
-	pthread_create(&accept_loop, NULL, l_client_accept_loop, NULL);
+	pthread_create(&accept_loop, NULL, ma_client_accept_loop, NULL);
 }
 
-void l_free() {
+void ma_free() {
 	server_running = 0;
 	pthread_join(client_thread, NULL);
+
+	for(int i = 0; i < clients_count; i++)
+		if(clients[i].input_data != NULL)
+			free(clients[i].input_data);
 	free(clients);
 }
 
-void l_send(int socket, void* data, unsigned long size) {
+void ma_send(int socket, void* data, unsigned long size) {
 	unsigned char header[2];
 	header[0] = 0x82;
 
@@ -384,7 +381,7 @@ void l_send(int socket, void* data, unsigned long size) {
 // |------------------------------------------------------------------------------------------------------------------|-------------------------|-------------|
 
 // TODO: option to remove asserts at compile time
-void l_frame_send(Frame* frame, unsigned int client_index) {
+void ma_frame_send(Frame* frame, unsigned int client_index) {
 	assert(frame != NULL || default_frame != NULL);
 	assert(client_index < clients_size);
 
@@ -432,17 +429,41 @@ void l_frame_send(Frame* frame, unsigned int client_index) {
 		*((unsigned int*) &frame_data[byte_index]) = frame->inputs[i].size;
 		byte_index += 4;
 	}
+
+	unsigned int element_data_byte = 0;
+	for(unsigned int i = 0; i < frame->element_count; i++) {
+		frame_data[byte_index] = frame->elements[i].type;
+		byte_index++;
+
+		*((unsigned int*) &frame_data[byte_index]) = frame->elements[i].size;
+		byte_index += 4;
+
+		for(unsigned int j = 0; j < frame->elements[i].size; j++) {
+			frame_data[byte_index] = ((unsigned char*) frame->element_data)[element_data_byte];
+			byte_index++;
+		}
+
+		element_data_byte += frame->elements[i].size;
+	}
+
 	printf("byte index: %u, frame_size: %u\n", byte_index, frame_size);
 	
 	// send file
-	l_send(clients[client_index].socket_fd, frame_data, frame_size);
+	ma_send(clients[client_index].socket_fd, frame_data, frame_size);
+	free(frame_data);
 }
 
-void l_frame_default(Frame* frame) {
+void ma_fetch(unsigned int client_index) {
+	unsigned char header = 0;
+	header = MESSAGE_INPUT_REQUEST << 4;
+	ma_send(clients[client_index].socket_fd, &header, 1);
+}
+
+void ma_frame_default(Frame* frame) {
 	default_frame = frame;
 }
 
-Frame* l_frame_read(int fd) {
+Frame* ma_frame_read(int fd) {
 	unsigned char type;
 	unsigned char orientation;
 	read(fd, &type, 1);
@@ -472,18 +493,18 @@ Frame* l_frame_read(int fd) {
 	return frame;
 }
 
-void l_poll() {
-	unsigned long total_client_size = 0;
+void ma_poll() {
+	unsigned long totama_client_size = 0;
 	for(unsigned int i = 0; i < clients_size; i++) {
 		Frame* frame = clients[i].frame;
 
 		if(frame != NULL)
-			total_client_size += frame->input_size;
+			totama_client_size += frame->input_size;
 	}
 
-	if(total_client_size > clients_data_size) {
-		clients_data = realloc(clients_data, total_client_size);
-		clients_data_size = total_client_size;
+	if(totama_client_size > clients_data_size) {
+		clients_data = realloc(clients_data, totama_client_size);
+		clients_data_size = totama_client_size;
 	}
 
 	bzero(clients_data, clients_data_size);
@@ -502,7 +523,9 @@ void l_poll() {
 
 
 
-Frame* l_frame_create(FrameType type, Orientation orientation, bool scrollable, bool resizeable) {
+
+
+Frame* ma_frame_create(FrameType type, Orientation orientation, bool scrollable, bool resizeable) {
 	Frame* frame = (Frame*) malloc(sizeof(Frame));
 	frame->type = type;
 	frame->orientation = orientation;
@@ -512,19 +535,21 @@ Frame* l_frame_create(FrameType type, Orientation orientation, bool scrollable, 
 	frame->input_size = 0;
 	frame->input_count = 0;
 	frame->elements = NULL;
-	frame->element_size = 0;
+	frame->element_data = NULL;
 	frame->element_count = 0;
+	frame->element_size = 0;
+	frame->element_allocated = 0;
 
 	return frame;
 }
 
 // When frame is destroyed, all clients are kicked back into the default frame
 // TODO: check if frame being destroyed IS current frame
-void l_frame_destroy(Frame* frame) {
+void ma_frame_destroy(Frame* frame) {
 	for(int i = 0; i < clients_size; i++) {
 		if(clients[i].frame == frame) {
 			clients[i].frame = default_frame;
-			l_frame_send(frame, i);
+			ma_frame_send(frame, i);
 		}
 	}
 
@@ -538,30 +563,80 @@ void l_frame_destroy(Frame* frame) {
 }
 
 // TODO: verify this works
-void l_frame_input_add(Frame* frame, Input input) {
-	frame->inputs = realloc(frame->inputs, sizeof(Input) * (frame->input_count + 1)); // this might be expensive
+void ma_frame_input_add(Frame* frame, Input input) {
+	frame->inputs = realloc(frame->inputs, sizeof(Input) * frame->input_count + sizeof(Input)); // this might be expensive
 
 	frame->inputs[frame->input_count].type = input.type;
 	frame->inputs[frame->input_count].size = input.size;
 
 	frame->input_count++;
 	frame->input_size += input.size;
+	printf("input count %i\n", frame->input_count);
 }
 
-void l_frame_element_add(Frame* frame, Element element, void* data) {
-	frame->elements = realloc(frame->elements, sizeof(Element) * frame->element_count + frame->element_size + sizeof(Element) + element.size);
+void ma_frame_element_add(Frame* frame, Element element, void* data) {
+	frame->elements = (Element*) realloc(frame->elements, sizeof(Element) * frame->element_count + sizeof(Element));
 
-	frame->elements[frame->element_size].type = element.type;
-	frame->elements[frame->element_size].size = element.size;
+	frame->elements[frame->element_count].type = element.type;
+	frame->elements[frame->element_count].size = element.size;
 
-	if(element.size > 0)
-		memcpy(&frame->elements[frame->element_size + 2], &element.data[0], element.size);
+	// allocate data
+
+	if(frame->element_allocated < frame->element_size + element.size) {
+		frame->element_allocated = (frame->element_size + element.size) * 2;
+		frame->element_data = realloc(frame->element_data, frame->element_allocated);
+	}
+
+	if(element.size > 0 && data != NULL)
+		memcpy(frame->element_data + frame->element_size, data, element.size);
 
 	frame->element_count++;
-	frame->element_size += element.size + sizeof(Element);
+	frame->element_size += element.size;
 }
 
-void l_frame_print(Frame* frame) {
+void ma_frame_element_set(Frame* frame, Element element, unsigned char index, void* data) {
+	void* current_byte = frame->element_data;
+	Element current_element = frame->elements[0];
+	unsigned char current_index = 0;
+	unsigned int original_size = 0; // the size of the element getting replaced
+
+	// increase memory if necessary
+	if(frame->element_allocated < frame->element_size + element.size) {
+		frame->element_allocated = (frame->element_size + element.size) * 2;
+		frame->element_data = realloc(frame->element_data, frame->element_allocated);
+	}
+
+	for(unsigned short i = 0; i < frame->element_count; i++) {
+		current_element = frame->elements[i];
+
+		// if type is matched
+		if(current_element.type == element.type) {
+			// if index is the same
+			if(current_index == index) {
+				original_size = current_element.size;
+
+				// move existing data forward / backward
+				unsigned int bytes_left = frame->element_size - (current_byte + original_size - frame->element_data);
+				memmove(current_byte + original_size, current_byte + (element.size - original_size), bytes_left);
+
+				// now copy the new data
+				memcpy(current_byte, data, element.size);
+
+				// make sure that the element_size doesn't include the data we removed
+				current_element.size = element.size;
+				frame->element_size -= original_size;
+				frame->element_size += element.size;
+
+				return;
+			}
+			current_index++;
+		}
+
+		current_byte += current_element.size;
+	}
+}
+
+void ma_frame_print(Frame* frame) {
 	printf("orientation: %s\n", (frame->orientation == ORIENTATION_VERTICAL) ? "vertical" : "horizontal");
 	printf("type: %s\n",		(frame->type == FRAME_STATIC) ? "static" : "dynamic");
 	printf("scrollable: %s\n", 	(frame->scrollable) ? "true" : "false");
@@ -571,8 +646,14 @@ void l_frame_print(Frame* frame) {
 		printf("	%i Input: %i, length: %u\n", i, frame->inputs[i].type, frame->inputs[i].size);
 	}
 
+	unsigned int byte = 0;
 	for(unsigned int i = 0; i < frame->element_count; i++) {
-		printf("	%i Element: %i, length: %u\n", i, frame->elements[i].type, frame->elements[i].size);
+		printf("	%i Element: %i, length: %u, data:\n", i, frame->elements[i].type, frame->elements[i].size);
+
+		for(unsigned int j = 0; j < frame->elements[i].size; j++)
+			printf("		0x%X\n", ((unsigned char*) frame->element_data)[byte + j]);
+
+		byte += frame->elements[i].size;
 	}
 
 	printf("input size: %u\n", frame->input_size);
@@ -580,7 +661,7 @@ void l_frame_print(Frame* frame) {
 }
 
 
-int l_client_active(unsigned int client_index) {
+int ma_client_active(unsigned int client_index) {
 	assert(client_index < clients_size);
 	return clients[client_index].active;
 }
