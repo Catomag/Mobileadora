@@ -90,6 +90,8 @@ int main() {
 	ma_frame_element_color_add(main_frame, 10, 255, 9);
 	ma_frame_element_break_add(main_frame);
 	ma_frame_element_h1_add(main_frame, "HEader");
+
+	ma_frame_input_text_add(main_frame, 30);
 	ma_frame_input_joystick_add(main_frame);
 	for(int i = 0; i < 2; i++)
 		ma_frame_input_button_add(main_frame);
@@ -129,6 +131,7 @@ int main() {
 	bool requesting = false;
 	SetTargetFPS(60);
 
+
 	while(!WindowShouldClose()) {
 		time += GetTime() - prev_time;
 		grow_time += GetTime() - prev_time;
@@ -146,6 +149,12 @@ int main() {
 
 			for(int i = 0; i < PLAYER_COUNT; i++) {
 				if(ma_client_active(i) && players[i].alive) {
+
+					char buf[100];
+					if(ma_client_input_text_get(i, 0, buf)) {
+						printf("%s\n", buf);
+					}
+
 					bool b1 = 0;
 					ma_client_input_button_get(i, 0, (unsigned char*) &b1);
 					if(b1) {
