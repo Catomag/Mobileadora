@@ -93,7 +93,7 @@ void ma_frame_input_generic_add(Frame* frame, unsigned int size) {
 	ma_frame_input_add(frame, input);
 }
 
-void ma_frame_input_text_add(Frame* frame, unsigned short max_chars) {
+void ma_frame_input_text_add(Frame* frame, unsigned int max_chars) {
 	Input input;
 	input.type = INPUT_TEXT;
 	input.size = max_chars + 1;

@@ -91,7 +91,7 @@ int main() {
 	ma_frame_element_break_add(main_frame);
 	ma_frame_element_h1_add(main_frame, "HEader");
 
-	ma_frame_input_text_add(main_frame, 300);
+	ma_frame_input_text_add(main_frame, 30);
 	ma_frame_input_joystick_add(main_frame);
 	for(int i = 0; i < 2; i++)
 		ma_frame_input_button_add(main_frame);

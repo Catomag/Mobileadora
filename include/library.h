@@ -55,7 +55,7 @@ extern void ma_frame_default(Frame* frame); // set frame as default
 extern void ma_frame_print(Frame* frame); // print contents of frame object
 
 extern void ma_frame_input_generic_add(Frame* frame, unsigned int size); // a buffer of bytes
-extern void ma_frame_input_text_add(Frame* frame, unsigned short max_chars);
+extern void ma_frame_input_text_add(Frame* frame, unsigned int max_chars);
 extern void ma_frame_input_button_add(Frame* frame);
 extern void ma_frame_input_submit_add(Frame* frame);
 extern void ma_frame_input_toggle_add(Frame* frame);
