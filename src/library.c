@@ -67,7 +67,6 @@ void hash_to_base64(unsigned char* data, char* output) {
 }
 
 // TODO: maybe add support for multiple dataframes
-// TODO: clients_count should be clients_size in all these loops
 void* ma_client_handler(void* data) {
 	struct timespec delay;
 	delay.tv_nsec = 5 * 1000000; // TODO: remember, 20ms of artificial delay
@@ -430,6 +429,7 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 		byte_index += 4;
 	}
 
+	// element data
 	unsigned int element_data_byte = 0;
 	for(unsigned int i = 0; i < frame->element_count; i++) {
 		frame_data[byte_index] = frame->elements[i].type;
@@ -544,8 +544,10 @@ Frame* ma_frame_create(FrameType type, Orientation orientation, bool scrollable,
 }
 
 // When frame is destroyed, all clients are kicked back into the default frame
-// TODO: check if frame being destroyed IS current frame
 void ma_frame_destroy(Frame* frame) {
+	if(default_frame == frame)
+		default_frame = NULL;
+
 	for(int i = 0; i < clients_size; i++) {
 		if(clients[i].frame == frame) {
 			clients[i].frame = default_frame;
@@ -562,7 +564,6 @@ void ma_frame_destroy(Frame* frame) {
 	free(frame);
 }
 
-// TODO: verify this works
 void ma_frame_input_add(Frame* frame, Input input) {
 	frame->inputs = realloc(frame->inputs, sizeof(Input) * frame->input_count + sizeof(Input)); // this might be expensive
 

@@ -27,7 +27,7 @@
 #define BOOST_SPEED 2
 
 #define PELLET_COUNT 160
-#define MAX_LENGTH 300
+#define MAX_LENGTH 3000
 
 typedef struct {
 	short x[MAX_LENGTH];

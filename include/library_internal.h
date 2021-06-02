@@ -30,8 +30,8 @@ typedef enum {
 	ELEMENT_HEADER1,
 	ELEMENT_HEADER2,
 	ELEMENT_HEADER3,
-	ELEMENT_IMAGE, // image url
 	ELEMENT_COLOR, // a little colored square
+	ELEMENT_IMAGE, // image url
 } ElementType;
 
 struct _Element {
