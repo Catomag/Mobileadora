@@ -268,7 +268,6 @@ void* ma_client_accept_loop(void* data) {
 					}
 				}
 
-
 				clients_count++;
 			}
 		}
@@ -280,7 +279,6 @@ void* ma_client_accept_loop(void* data) {
 void ma_init(unsigned int max_clients, unsigned short port) {
 	server_running = 1;
 
-	printf("this ran\n");
 	// set up clients
 	clients = (Client*) malloc(max_clients * sizeof(Client));
 
@@ -387,6 +385,7 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 	if(frame == NULL)
 		frame = default_frame;
 
+
 	// assign frame to client
 	// TODO: make sure this doesn't interfere with anything
 	if(clients[client_index].frame == NULL)
@@ -396,12 +395,12 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 
 	bzero(clients[client_index].input_data, frame->input_size);
 	clients[client_index].frame = frame;
-	
+
 	// construct file
 	unsigned char input_count   = frame->input_count;
 	unsigned char element_count = frame->element_count;
 
-	// 3 bytes for header, 5 bytes per input, 5 byte per element and element size because of internal data stored
+	// 3 bytes for header, 5 bytes per input, 5 bytes per element and element size because of internal data stored
 	unsigned int frame_size = 3 + (input_count * 5) + (element_count * 5 + frame->element_size);
 	unsigned char* frame_data = malloc(frame_size);
 
@@ -429,7 +428,7 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 		byte_index += 4;
 	}
 
-	// element data
+	// element data, stored adjacent to element type info
 	unsigned int element_data_byte = 0;
 	for(unsigned int i = 0; i < frame->element_count; i++) {
 		frame_data[byte_index] = frame->elements[i].type;
@@ -439,7 +438,7 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 		byte_index += 4;
 
 		for(unsigned int j = 0; j < frame->elements[i].size; j++) {
-			frame_data[byte_index] = ((unsigned char*) frame->element_data)[element_data_byte];
+			frame_data[byte_index] = ((unsigned char*) frame->element_data)[element_data_byte + j];
 			byte_index++;
 		}
 
@@ -543,6 +542,29 @@ Frame* ma_frame_create(FrameType type, Orientation orientation, bool scrollable,
 	return frame;
 }
 
+Frame* ma_frame_copy(Frame* frame) {
+	assert(frame != NULL || default_frame != NULL);
+	if(frame == NULL)
+		frame = default_frame;
+
+	Frame* frame_copy = (Frame*) malloc(sizeof(Frame));
+
+	memcpy(frame_copy, frame, sizeof(Frame));
+
+	frame_copy->inputs = malloc(frame->input_count * sizeof(Input));
+	memcpy(frame_copy->inputs, frame->inputs, frame->input_count * sizeof(Input));
+
+	frame_copy->elements = malloc(frame->element_count * sizeof(Element));
+	memcpy(frame_copy->elements, frame->elements, frame->element_count * sizeof(Element));
+	frame_copy->element_data = malloc(frame->element_size);
+	memcpy(frame_copy->element_data, frame->element_data, frame->element_size);
+
+	ma_frame_print(frame);
+	ma_frame_print(frame_copy);
+
+	return frame_copy;
+}
+
 // When frame is destroyed, all clients are kicked back into the default frame
 void ma_frame_destroy(Frame* frame) {
 	if(default_frame == frame)
@@ -551,7 +573,7 @@ void ma_frame_destroy(Frame* frame) {
 	for(int i = 0; i < clients_size; i++) {
 		if(clients[i].frame == frame) {
 			clients[i].frame = default_frame;
-			ma_frame_send(frame, i);
+			ma_frame_send(default_frame, i);
 		}
 	}
 
@@ -572,7 +594,6 @@ void ma_frame_input_add(Frame* frame, Input input) {
 
 	frame->input_count++;
 	frame->input_size += input.size;
-	printf("input count %i\n", frame->input_count);
 }
 
 void ma_frame_element_add(Frame* frame, Element element, void* data) {
@@ -659,6 +680,8 @@ void ma_frame_print(Frame* frame) {
 
 	printf("input size: %u\n", frame->input_size);
 	printf("input count: %u\n", frame->input_count);
+	printf("element size: %u\n", frame->element_size);
+	printf("element count: %u\n", frame->element_count);
 }
 
 

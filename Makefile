@@ -7,31 +7,29 @@ DEMOS_OBJ = $(addsuffix .out, $(addprefix bin/, $(basename $(notdir $(DEMOS_SRC)
 INCLUDE = -I include
 CFLAGS = -pedantic -W -O3 -D_DEBUG_
 
-all: objects demos server
+all: objects demos
 
-again: clean
+again: clean all
 
 objects: $(OBJ)
 
 demos: $(DEMOS_OBJ)
 
-server: $(OBJ)
-	clang -W /usr/lib/Gaia/Hephaestus.so $^ -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
 
 bin/%.o : src/%.c
 	clang $(INCLUDE) $(CFLAGS) -c $< -o $@
 
 bin/%.out: demos/%.c
-	clang -W /usr/lib/Gaia/Hephaestus.so $(OBJ) -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
+	clang -W /usr/lib/Gaia/Hephaestus.so $(OBJ) $^ -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
 
 clean:
-	rm -f bin/*.o
+	rm -f bin/*
 
 install:
 	echo "Can't install surry"
 
-try: server
-	./server
+try: all
+	./bin/snake.out
 
 run:
 	./server

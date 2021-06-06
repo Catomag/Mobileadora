@@ -40,7 +40,7 @@ void ma_frame_element_color_add(Frame* frame, unsigned char r, unsigned char g, 
 	col[1] = g;
 	col[2] = b;
 
-	ma_frame_element_add(frame, color, &col);
+	ma_frame_element_add(frame, color, col);
 }
 
 void ma_frame_element_break_add(Frame* frame) {
@@ -97,5 +97,5 @@ void ma_frame_element_color_set(Frame* frame, unsigned char index, unsigned char
 	col[1] = g;
 	col[2] = b;
 
-	ma_frame_element_set(frame, color, index, &col);
+	ma_frame_element_set(frame, color, index, col);
 }

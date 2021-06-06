@@ -2,7 +2,8 @@
 #include "../include/library.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <string.h>
+
 #include <raylib.h>
 #include <math.h>
 
@@ -39,6 +40,7 @@ typedef struct {
 	bool sped;
 	bool alive;
 	Color color;
+	Frame* frame;
 } Player;
 
 typedef struct {
@@ -46,6 +48,7 @@ typedef struct {
 	short y;
 } Pellet;
 
+Frame* base_frame;
 Player players[PLAYER_COUNT];
 Pellet pellets[PELLET_COUNT];
 
@@ -76,6 +79,12 @@ void reset() {
 		players[i].dir_y = -1;
 		players[i].alive = 1;
 		player_increase_length(&players[i], 8);
+
+		if(players[i].frame == NULL)
+			players[i].frame = ma_frame_copy(base_frame);
+
+		ma_frame_element_color_set(players[i].frame, 0, players[i].color.r, players[i].color.g, players[i].color.b);
+		ma_frame_send(players[i].frame, i);
 	}
 }
 
@@ -84,17 +93,15 @@ int main() {
 
 	ma_init(PLAYER_COUNT, 8000);
 
-	Frame* main_frame = ma_frame_create(FRAME_DYNAMIC, ORIENTATION_HORIZONTAL, false, false);
-	ma_frame_element_color_add(main_frame, 10, 10, 10);
-	ma_frame_element_color_add(main_frame, 10, 16, 10);
-	ma_frame_element_color_add(main_frame, 10, 255, 9);
-	ma_frame_element_break_add(main_frame);
-	ma_frame_element_h1_add(main_frame, "HEader");
+	base_frame = ma_frame_create(FRAME_DYNAMIC, ORIENTATION_HORIZONTAL, false, false);
+	ma_frame_element_color_add(base_frame, 0, 255, 0);
 
-	ma_frame_input_text_add(main_frame, 30);
-	ma_frame_input_joystick_add(main_frame);
+//	ma_frame_element_break_add(main_frame);
+//	ma_frame_element_h1_add(main_frame, "HEader");
+
+	ma_frame_input_joystick_add(base_frame);
 	for(int i = 0; i < 2; i++)
-		ma_frame_input_button_add(main_frame);
+		ma_frame_input_button_add(base_frame);
 
 //	Element br;
 //	br.type = ELEMENT_BREAK;
@@ -116,11 +123,12 @@ int main() {
 //	ma_frame_element_add(main_frame, br);
 	
 	// do stuff with data
-	ma_frame_print(main_frame);
-	ma_frame_default(main_frame);
+	ma_frame_print(base_frame);
+	ma_frame_default(base_frame);
 
 	InitWindow(WIDTH, HEIGHT, "testapp");
 	
+	bzero(players, PLAYER_COUNT * sizeof(Player));
 	reset();
 
 	float time = 0;
@@ -128,7 +136,6 @@ int main() {
 	float prev_time = 0;
 	unsigned long tick = 0;
 
-	bool requesting = false;
 	SetTargetFPS(60);
 
 
@@ -139,9 +146,6 @@ int main() {
 
 		if(IsKeyPressed(KEY_R))
 			reset();
-
-		if(IsKeyDown(KEY_Z))
-			requesting = !requesting;
 
 		if(time > .008f) {
 			tick++;
@@ -307,8 +311,12 @@ int main() {
 	}
 
 	CloseWindow();
-	ma_frame_destroy(main_frame);
 	ma_free();
+	ma_frame_destroy(base_frame);
+	for(int i = 0; i < PLAYER_COUNT; i++)
+		if(players[i].frame != NULL)
+			ma_frame_destroy(players[i].frame);
 	h_debug_log_history();
 	h_debug_log_free();
+	printf("this ran\n");
 }

@@ -33,8 +33,8 @@ extern void ma_free(); // stops library and frees allocated resources
 extern void ma_poll(); // retrieves client information and current input information
 extern void ma_fetch(unsigned int client_index); // manually asks clients for data, used in static frames
 
-extern unsigned int ma_client_index_from_id(void* client_id); // returns NULL_CLIENT if id is invalid or client is disconnected
-extern void* ma_client_id_from_index(unsigned int client_index); // returns NULL_CLIENT if id is invalid or client is disconnected
+//extern unsigned int ma_client_index_from_id(void* client_id); // returns NULL_CLIENT if id is invalid or client is disconnected
+//extern void* ma_client_id_from_index(unsigned int client_index); // returns NULL_CLIENT if id is invalid or client is disconnected
 extern int ma_client_active(unsigned int client_index); // checks if the client is connected
 extern unsigned int ma_client_active_count(); // returns number of active clients
 extern unsigned int ma_client_max_count(); // returns number of maximum clients
