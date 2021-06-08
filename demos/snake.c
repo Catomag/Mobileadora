@@ -99,9 +99,12 @@ int main() {
 //	ma_frame_element_break_add(main_frame);
 //	ma_frame_element_h1_add(main_frame, "HEader");
 
+	ma_frame_input_text_add(base_frame, 100);
 	ma_frame_input_joystick_add(base_frame);
 	for(int i = 0; i < 2; i++)
 		ma_frame_input_button_add(base_frame);
+	ma_frame_input_toggle_add(base_frame);
+	ma_frame_input_submit_add(base_frame);
 
 //	Element br;
 //	br.type = ELEMENT_BREAK;
@@ -312,11 +315,10 @@ int main() {
 
 	CloseWindow();
 	ma_free();
-	ma_frame_destroy(base_frame);
 	for(int i = 0; i < PLAYER_COUNT; i++)
 		if(players[i].frame != NULL)
 			ma_frame_destroy(players[i].frame);
+	ma_frame_destroy(base_frame);
 	h_debug_log_history();
 	h_debug_log_free();
-	printf("this ran\n");
 }

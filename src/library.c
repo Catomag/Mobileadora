@@ -573,7 +573,8 @@ void ma_frame_destroy(Frame* frame) {
 	for(int i = 0; i < clients_size; i++) {
 		if(clients[i].frame == frame) {
 			clients[i].frame = default_frame;
-			ma_frame_send(default_frame, i);
+			if(default_frame != NULL)
+				ma_frame_send(default_frame, i);
 		}
 	}
 

@@ -19,7 +19,7 @@ const Input SUBMIT = {
 };
 
 const Input TOGGLE = {
-	INPUT_BUTTON,
+	INPUT_TOGGLE,
 	sizeof(unsigned char)
 };
 
