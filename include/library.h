@@ -30,7 +30,7 @@ typedef enum {
 extern void ma_init(unsigned int max_clients, unsigned short port); // starts server and creates separate thread to handle clients
 extern void ma_free(); // stops library and frees allocated resources 
 
-extern void ma_poll(); // retrieves client information and current input information
+//extern void ma_poll(); // retrieves client information and current input information
 extern void ma_fetch(unsigned int client_index); // manually asks clients for data, used in static frames
 
 extern unsigned int ma_client_index_from_id(void* client_id); // returns NULL_CLIENT if id is invalid or client is disconnected

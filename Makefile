@@ -28,7 +28,7 @@ clean:
 install:
 	echo "Can't install surry"
 
-try: demos
+try: all
 	./bin/asteroids.out
 
 run:
