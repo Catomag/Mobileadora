@@ -15,44 +15,46 @@ typedef enum {
 	INPUT_TOGGLE, // toggles between on and off every press
 	INPUT_JOYSTICK,	// 2 float array
 	INPUT_GENERIC,	// byte array
-	INPUT_COUNT
 } InputType;
 
 struct _Input {
-	InputType type;
+	unsigned char type;
 	unsigned int size; // size in bytes
 };
 
 typedef enum {
 	ELEMENT_TEXT,
 	ELEMENT_BREAK, // <br> in html
-	ELEMENT_LINE,
+	ELEMENT_SPACER, // A space ~size of a button
 	ELEMENT_HEADER1,
 	ELEMENT_HEADER2,
 	ELEMENT_HEADER3,
-	ELEMENT_COLOR, // a little colored square
-	ELEMENT_IMAGE, // image url
+	ELEMENT_LINE, // a horizontal line, html style
+	ELEMENT_COLOR, // a little coloured square
 } ElementType;
 
 struct _Element {
-	ElementType type;
+	unsigned char type;
 	unsigned int size; // size can be 0
 };
 
 struct _Frame {
-	FrameType type;
-	Orientation orientation;
+	bool type;
+	bool orientation;
 	bool scrollable;
 	bool resizeable;
 	unsigned char input_count;
-	unsigned int input_size;
 	unsigned char element_count;
+	unsigned int input_size;
 	unsigned int element_size;
 	unsigned int element_allocated;
+	Input* inputs;
 	Element* elements; // element info
 	void* element_data; // data per element
-	// inputs are allocated with frame struct to reduce cache misses, since input data is often accessed with frame data
-	Input* inputs;
+
+	void* raw_data; // all of the input and element data ordered sequentially, importantly element types in this array are stored as bytes with the first bit enabled so that any client can easily work out what types it has
+	unsigned long raw_data_size; // the raw data array could potentially be quite large, so we prepare accordingly
+	unsigned long raw_data_allocated;
 };
 
 typedef struct {
@@ -71,8 +73,8 @@ extern void hash_to_base64(unsigned char* data, char* output);
 
 extern void ma_send(int socket, void* data, unsigned long size); // sends a websocket
 
-extern void* ma_client_handler(void* data);
-extern void* ma_client_accept_loop(void* data);
+extern void* ma_client_accept_loop(void* data); // accepts clients attempting to connect
+extern void* ma_client_handler(void* data); // handles clients after connecting
 
 extern void ma_frame_input_add(Frame* frame, Input input); // add input to the frame
 extern void ma_frame_element_add(Frame* frame, Element element, void* data); // adds an element to the frame

@@ -347,25 +347,27 @@ void ma_send(int socket, void* data, unsigned long size) {
 	// assumes message is never fragmented
 
 	unsigned char payload[size];
-	uint64_t payload_length_size = 0;
 
 	if(size < 126) {
 		header[1] = size;
 	}
 	else if(size < 0xffff) {
 		header[1] = 126;
-		payload_length_size = 2;
 	}
 	else {
 		header[1] = 127;
-		payload_length_size = 8;
 	}
 
-	for(uint64_t i = 0; i < size; i++)
-		payload[i] = (unsigned char) ((unsigned char*)data)[i];
-
+	memcpy(payload, data, size);
 	send(socket, header, 2, MSG_NOSIGNAL);
-	send(socket, &size, payload_length_size, MSG_NOSIGNAL);
+
+	if(size < 0xffff) {
+		unsigned short size_as_int = htobe16((unsigned short) size);
+		send(socket, &size_as_int, sizeof(short), MSG_NOSIGNAL);
+	}
+	else
+		send(socket, &size, sizeof(long), MSG_NOSIGNAL);
+
 	send(socket, payload, size, MSG_NOSIGNAL);
 }
 
@@ -385,7 +387,6 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 	if(frame == NULL)
 		frame = default_frame;
 
-
 	// assign frame to client
 	// TODO: make sure this doesn't interfere with anything
 	if(clients[client_index].frame == NULL)
@@ -401,7 +402,7 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 	unsigned char element_count = frame->element_count;
 
 	// 3 bytes for header, 5 bytes per input, 5 bytes per element and element size because of internal data stored
-	unsigned int frame_size = 3 + (input_count * 5) + (element_count * 5 + frame->element_size);
+	unsigned int frame_size = 3 + frame->raw_data_size;
 	unsigned char* frame_data = malloc(frame_size);
 
 	// header
@@ -417,37 +418,10 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 
 	memcpy(&frame_data[1], &input_count, sizeof(char));
 	memcpy(&frame_data[2], &element_count, sizeof(char));
+	memcpy(&frame_data[3], frame->raw_data, frame->raw_data_size);
 
-	// input types
-	unsigned int byte_index = 3;
-	for(unsigned int i = 0; i < frame->input_count; i++) {
-		frame_data[byte_index] = frame->inputs[i].type;
-		byte_index++;
-
-		*((unsigned int*) &frame_data[byte_index]) = frame->inputs[i].size;
-		byte_index += 4;
-	}
-
-	// element data, stored adjacent to element type info
-	unsigned int element_data_byte = 0;
-	for(unsigned int i = 0; i < frame->element_count; i++) {
-		frame_data[byte_index] = frame->elements[i].type;
-		byte_index++;
-
-		*((unsigned int*) &frame_data[byte_index]) = frame->elements[i].size;
-		byte_index += 4;
-
-		for(unsigned int j = 0; j < frame->elements[i].size; j++) {
-			frame_data[byte_index] = ((unsigned char*) frame->element_data)[element_data_byte + j];
-			byte_index++;
-		}
-
-		element_data_byte += frame->elements[i].size;
-	}
-
-	printf("byte index: %u, frame_size: %u\n", byte_index, frame_size);
-	
 	// send file
+	printf("frame size: %u\n", frame_size);
 	ma_send(clients[client_index].socket_fd, frame_data, frame_size);
 	free(frame_data);
 }
@@ -538,6 +512,9 @@ Frame* ma_frame_create(FrameType type, Orientation orientation, bool scrollable,
 	frame->element_count = 0;
 	frame->element_size = 0;
 	frame->element_allocated = 0;
+	frame->raw_data = NULL;
+	frame->raw_data_size = 0;
+	frame->raw_data_allocated = 0;
 
 	return frame;
 }
@@ -556,8 +533,12 @@ Frame* ma_frame_copy(Frame* frame) {
 
 	frame_copy->elements = malloc(frame->element_count * sizeof(Element));
 	memcpy(frame_copy->elements, frame->elements, frame->element_count * sizeof(Element));
-	frame_copy->element_data = malloc(frame->element_size);
+
+	frame_copy->element_data = malloc(frame->element_allocated);
 	memcpy(frame_copy->element_data, frame->element_data, frame->element_size);
+
+	frame_copy->raw_data = malloc(frame->raw_data_allocated);
+	memcpy(frame_copy->raw_data, frame->raw_data, frame->raw_data_size);
 
 	ma_frame_print(frame);
 	ma_frame_print(frame_copy);
@@ -584,6 +565,9 @@ void ma_frame_destroy(Frame* frame) {
 	if(frame->elements != NULL)
 		free(frame->elements);
 
+	if(frame->raw_data != NULL)
+		free(frame->raw_data);
+
 	free(frame);
 }
 
@@ -595,6 +579,16 @@ void ma_frame_input_add(Frame* frame, Input input) {
 
 	frame->input_count++;
 	frame->input_size += input.size;
+
+	// add to the raw data
+	if(frame->raw_data_allocated <= frame->raw_data_size + 5) {
+		frame->raw_data_allocated = (frame->raw_data_size + sizeof(Input)) * 2;
+		frame->raw_data = realloc(frame->raw_data, frame->raw_data_allocated);
+	}
+
+	memcpy(&frame->raw_data[frame->raw_data_size + 0], &input.type, sizeof(char));
+	memcpy(&frame->raw_data[frame->raw_data_size + 1], &input.size, sizeof(int));
+	frame->raw_data_size += 5;
 }
 
 void ma_frame_element_add(Frame* frame, Element element, void* data) {
@@ -604,8 +598,7 @@ void ma_frame_element_add(Frame* frame, Element element, void* data) {
 	frame->elements[frame->element_count].size = element.size;
 
 	// allocate data
-
-	if(frame->element_allocated < frame->element_size + element.size) {
+	if(frame->element_allocated <= frame->element_size + element.size) {
 		frame->element_allocated = (frame->element_size + element.size) * 2;
 		frame->element_data = realloc(frame->element_data, frame->element_allocated);
 	}
@@ -615,13 +608,26 @@ void ma_frame_element_add(Frame* frame, Element element, void* data) {
 
 	frame->element_count++;
 	frame->element_size += element.size;
+
+	// add to the raw data
+	if(frame->raw_data_allocated <= frame->raw_data_size + element.size + sizeof(Element)) {
+		frame->raw_data_allocated = (frame->raw_data_size + element.size + sizeof(Element)) * 2;
+		frame->raw_data = realloc(frame->raw_data, frame->raw_data_allocated);
+	}
+
+	Element e = element;
+	e.type |= 0x80; // make the most significant bit be 1, so that client can distinguish them
+
+	memcpy(&frame->raw_data[frame->raw_data_size + 0], &e.type, sizeof(char));
+	memcpy(&frame->raw_data[frame->raw_data_size + 1], &e.size, sizeof(int));
+	memcpy(&frame->raw_data[frame->raw_data_size + 5], data, element.size);
+	frame->raw_data_size += 5 + element.size;
 }
 
 void ma_frame_element_set(Frame* frame, Element element, unsigned char index, void* data) {
 	void* current_byte = frame->element_data;
 	Element current_element = frame->elements[0];
 	unsigned char current_index = 0;
-	unsigned int original_size = 0; // the size of the element getting replaced
 
 	// increase memory if necessary
 	if(frame->element_allocated < frame->element_size + element.size) {
@@ -636,7 +642,7 @@ void ma_frame_element_set(Frame* frame, Element element, unsigned char index, vo
 		if(current_element.type == element.type) {
 			// if index is the same
 			if(current_index == index) {
-				original_size = current_element.size;
+				unsigned int original_size = current_element.size;
 
 				// move existing data forward / backward
 				unsigned int bytes_left = frame->element_size - (current_byte + original_size - frame->element_data);
@@ -650,12 +656,45 @@ void ma_frame_element_set(Frame* frame, Element element, unsigned char index, vo
 				frame->element_size -= original_size;
 				frame->element_size += element.size;
 
-				return;
+				break;
 			}
 			current_index++;
 		}
 
 		current_byte += current_element.size;
+	}
+
+	// the same change must be done to the raw_data
+	unsigned char* raw_data = frame->raw_data;
+	unsigned long byte = 0;
+	current_index = 0;
+
+	while(byte < frame->raw_data_size) {
+		// if the data is an element
+		if(raw_data[byte] & 0x80) {
+			unsigned int current_element_size = *((unsigned int*) &raw_data[byte + 1]);
+			// if the element is the type we want
+			if((raw_data[byte] & 0x7f) == element.type) {
+				// if the element is the index we want
+				if(current_index == index) {
+					unsigned int original_size = current_element_size;
+
+					// move existing data forward / backward
+					//unsigned int bytes_left = frame->raw_data_size - (byte + original_size);
+					//memmove(frame->raw_data + 5 + byte + original_size, (frame->raw_data + 5 + byte) + (element.size - original_size), bytes_left);
+
+					// now copy the new data
+					memcpy(frame->raw_data + 5 + byte, data, element.size);
+					break;
+				}
+
+				current_index++;
+			}
+			// only increment size if its an element as inputs don't store data in the array
+			byte += 5 + current_element_size;
+		}
+		else
+			byte += 5;
 	}
 }
 

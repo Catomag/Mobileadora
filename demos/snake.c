@@ -94,17 +94,17 @@ int main() {
 	ma_init(PLAYER_COUNT, 8000);
 
 	base_frame = ma_frame_create(FRAME_DYNAMIC, ORIENTATION_HORIZONTAL, false, false);
-	ma_frame_element_color_add(base_frame, 0, 255, 0);
 
 //	ma_frame_element_break_add(main_frame);
 //	ma_frame_element_h1_add(main_frame, "HEader");
 
-	ma_frame_input_text_add(base_frame, 100);
+	ma_frame_element_h2_add(base_frame, "I FIXED THE BUG, I AND ONLY I CAN HAVE AAAAAAAAAAAAALLLLLLLLLLLL THE TEXT IN THE MUUUUUUUUUUUUUUUUUUUUUUUULLLLLLLLLLLLLLLLLLLTTTTTTTTTTTTTTTTTTTTTTTTTTTTIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIVVVVVVVVVVVVVVVVVVEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
 	ma_frame_input_joystick_add(base_frame);
-	for(int i = 0; i < 2; i++)
-		ma_frame_input_button_add(base_frame);
-	ma_frame_input_toggle_add(base_frame);
-	ma_frame_input_submit_add(base_frame);
+	ma_frame_element_spacer_add(base_frame);
+	ma_frame_input_button_add(base_frame);
+	ma_frame_element_break_add(base_frame);
+	ma_frame_input_button_add(base_frame);
+	//ma_frame_element_color_add(base_frame, 255, 255, 0);
 
 //	Element br;
 //	br.type = ELEMENT_BREAK;

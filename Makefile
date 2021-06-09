@@ -17,10 +17,10 @@ demos: $(DEMOS_OBJ)
 
 
 bin/%.o : src/%.c
-	clang $(INCLUDE) $(CFLAGS) -c $< -o $@
+	gcc $(INCLUDE) $(CFLAGS) -c $< -o $@
 
 bin/%.out: demos/%.c
-	clang -W /usr/lib/Gaia/Hephaestus.so $(OBJ) $^ -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
+	gcc -W /usr/lib/Gaia/Hephaestus.so $(OBJ) $^ -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
 
 clean:
 	rm -f bin/*

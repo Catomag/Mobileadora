@@ -1,11 +1,13 @@
 #include "../include/library_internal.h"
 #include <string.h>
+#include <Gaia/Hephaestus.h>
 
 
 void ma_frame_element_text_add(Frame* frame, const char* string) {
 	Element text;
 	text.type = ELEMENT_TEXT;
 	text.size = strlen(string) + 1;
+	h_debug_println();
 	ma_frame_element_add(frame, text, (void*) string);
 }
 
@@ -55,6 +57,13 @@ void ma_frame_element_line_add(Frame* frame) {
 	line.type = ELEMENT_LINE;
 	line.size = 0;
 	ma_frame_element_add(frame, line, NULL);
+}
+
+void ma_frame_element_spacer_add(Frame* frame) {
+	Element spacer;
+	spacer.type = ELEMENT_SPACER;
+	spacer.size = 0;
+	ma_frame_element_add(frame, spacer, NULL);
 }
 
 

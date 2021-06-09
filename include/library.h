@@ -67,6 +67,7 @@ extern void ma_frame_element_h2_add(Frame* frame, const char* string);
 extern void ma_frame_element_h3_add(Frame* frame, const char* string);
 extern void ma_frame_element_color_add(Frame* frame, unsigned char r, unsigned char g, unsigned char b);
 extern void ma_frame_element_break_add(Frame* frame);
+extern void ma_frame_element_spacer_add(Frame* frame);
 extern void ma_frame_element_line_add(Frame* frame); // a nice markdown type line
 
 extern void ma_frame_element_text_set(Frame* frame, unsigned char element_index, const char* string);
