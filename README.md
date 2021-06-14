@@ -58,7 +58,10 @@ I made a few examples for you to check out.
 Classic snake game with multiplayer added! Players get a random snake and do all the typical stuff, eat apples to become larger, dodge walls, and kick ass.
 
 ### asteroids.c
-Game of asteroids, which is largely incomplete
+Game of asteroids, which is largely incomplete, players get points for shooting at other players and a crown is involved
+
+### typingraces.c
+A game of typeracer on a very enticing text
 
 
 ## Notes (For me)

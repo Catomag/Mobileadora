@@ -25,8 +25,6 @@ Client* clients;
 pthread_t client_thread;
 unsigned int clients_count;
 unsigned int clients_size;
-void* clients_data = NULL;
-unsigned long clients_data_size = 0;
 
 unsigned char server_running = 0;
 
@@ -101,9 +99,7 @@ void* ma_client_handler(void* data) {
 //				printf("	Opcode: %x\n", opcode);
 
 				if(opcode == 0x8) {
-					close(clients[i].socket_fd);
-					clients_count -= 1;
-					clients[i].active = 0;
+					ma_client_disconnect(i);
 					printf("	Disconnected\n");
 				}
 				else {
@@ -361,11 +357,11 @@ void ma_send(int socket, void* data, unsigned long size) {
 	memcpy(payload, data, size);
 	send(socket, header, 2, MSG_NOSIGNAL);
 
-	if(size < 0xffff) {
+	if(size >= 126 && size < 0xffff) {
 		unsigned short size_as_int = htobe16((unsigned short) size);
 		send(socket, &size_as_int, sizeof(short), MSG_NOSIGNAL);
 	}
-	else
+	else if(size > 0xffff)
 		send(socket, &size, sizeof(long), MSG_NOSIGNAL);
 
 	send(socket, payload, size, MSG_NOSIGNAL);
@@ -421,7 +417,6 @@ void ma_frame_send(Frame* frame, unsigned int client_index) {
 	memcpy(&frame_data[3], frame->raw_data, frame->raw_data_size);
 
 	// send file
-	printf("frame size: %u\n", frame_size);
 	ma_send(clients[client_index].socket_fd, frame_data, frame_size);
 	free(frame_data);
 }
@@ -466,36 +461,13 @@ Frame* ma_frame_read(int fd) {
 	return frame;
 }
 
-void ma_poll() {
-	unsigned long totama_client_size = 0;
-	for(unsigned int i = 0; i < clients_size; i++) {
-		Frame* frame = clients[i].frame;
 
-		if(frame != NULL)
-			totama_client_size += frame->input_size;
-	}
-
-	if(totama_client_size > clients_data_size) {
-		clients_data = realloc(clients_data, totama_client_size);
-		clients_data_size = totama_client_size;
-	}
-
-	bzero(clients_data, clients_data_size);
-
-	unsigned long current_byte = 0;
-	for(unsigned int i = 0; i < clients_size; i++) {
-		Frame* frame = clients[i].frame;
-		if(frame != NULL) {
-			if(clients[i].input_data != NULL)
-				memcpy(clients_data + current_byte, &clients[i].input_data[0], frame->input_size);
-
-			current_byte += frame->input_size;
-		}
-	}
+void ma_flush() {
+	for(int i = 0; i < clients_size; i++)
+		if(clients[i].frame != NULL && clients[i].input_data != NULL)
+			for(int j = 0; j < clients[i].frame->input_size; j++)
+				clients[i].input_data[j] = 0;
 }
-
-
-
 
 
 Frame* ma_frame_create(FrameType type, Orientation orientation, bool scrollable, bool resizeable) {
@@ -728,4 +700,15 @@ void ma_frame_print(Frame* frame) {
 int ma_client_active(unsigned int client_index) {
 	assert(client_index < clients_size);
 	return clients[client_index].active;
+}
+
+unsigned int ma_client_active_count() {
+	return clients_count;
+}
+
+void ma_client_disconnect(unsigned int client_index) {
+	assert(client_index < clients_size);
+	close(clients[client_index].socket_fd);
+	clients_count -= 1;
+	clients[client_index].active = 0;
 }

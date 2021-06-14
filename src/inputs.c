@@ -29,39 +29,13 @@ const Input JOYSTICK = {
 };
 
 
-// TODO: revise this, using clients_data right now so that new data is only accessed when ma_poll occurs
 bool ma_input_get(unsigned int client_index, InputType type, unsigned char input_index, void* data) {
 	if(clients[client_index].input_data == NULL)
 		return 0;
 
-//	unsigned long index = 0;
-//	unsigned int input_size_sum = 0;
-//	unsigned char inputs_of_type_count = 0;
-//
-//	if(client_index >= 0 && client_index < clients_size) {
-//		for(unsigned int i = 0; client_index > 0 && i < client_index; i++) {
-//			index += clients[i].frame->input_size;
-//		}
-//
-//		for(unsigned char i = 0; i < clients[client_index].frame->input_count; i++) {
-//			if(clients[client_index].frame->inputs[i].type == type) {
-//				if(inputs_of_type_count == input_index) {
-//					for(unsigned int j = 0; j < clients[client_index].frame->inputs[i].size; j++)
-//						data[j] = (unsigned char) clients_data[index + j];
-//
-//					return 1;
-//				}
-//				inputs_of_type_count++;
-//			}
-//
-//			input_size_sum += clients[client_index].frame->inputs[i].size;
-//		}
-//	}
-
 	unsigned char current_index = 0;
 	unsigned long current_byte = 0;
 
-	//h_debug_println();
 	for(unsigned int i = 0; i < clients[client_index].frame->input_count; i++) {
 		if(clients[client_index].frame->inputs[i].type == type) {
 			if(input_index == current_index) {
@@ -139,6 +113,16 @@ bool ma_client_input_text_get(unsigned int client_index, unsigned char input_ind
 bool ma_client_input_button_get(unsigned int client_index, unsigned char input_index, bool* value) {
 	bool data;
 	if(ma_input_get(client_index, INPUT_BUTTON, input_index, &data)) {
+		*value = data;
+		return 1;
+	}
+	else
+		return 0;
+}
+
+bool ma_client_input_submit_get(unsigned int client_index, unsigned char input_index, bool* value) {
+	bool data;
+	if(ma_input_get(client_index, INPUT_BUTTON_SEND, input_index, &data)) {
 		*value = data;
 		return 1;
 	}

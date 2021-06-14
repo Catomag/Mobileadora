@@ -86,8 +86,6 @@ extern bool ma_input_get(unsigned int client_index, InputType type, unsigned cha
 extern Client* clients;
 extern unsigned int clients_count;
 extern unsigned int clients_size;
-extern void* clients_data; // not meant to be read directly, use ma_input_get to retrieve data
-extern unsigned long clients_data_size;
 
 extern Frame* default_frame;
 extern void* frames;

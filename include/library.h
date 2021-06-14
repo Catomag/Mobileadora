@@ -30,19 +30,20 @@ typedef enum {
 extern void ma_init(unsigned int max_clients, unsigned short port); // starts server and creates separate thread to handle clients
 extern void ma_free(); // stops library and frees allocated resources 
 
-//extern void ma_poll(); // retrieves client information and current input information
+extern void ma_flush(); // resets all client info (forcefully sets everything to 0)
 extern void ma_fetch(unsigned int client_index); // manually asks clients for data, used in static frames
 
 //extern unsigned int ma_client_index_from_id(void* client_id); // returns NULL_CLIENT if id is invalid or client is disconnected
 //extern void* ma_client_id_from_index(unsigned int client_index); // returns NULL_CLIENT if id is invalid or client is disconnected
 extern int ma_client_active(unsigned int client_index); // checks if the client is connected
+extern void ma_client_disconnect(unsigned int client_index); // disconnects client forcefully
 extern unsigned int ma_client_active_count(); // returns number of active clients
 extern unsigned int ma_client_max_count(); // returns number of maximum clients
 
 extern bool ma_client_input_generic_get(unsigned int client_index, unsigned char input_index, void* value);
 extern bool ma_client_input_text_get(unsigned int client_index, unsigned char input_index, char* value);
 extern bool ma_client_input_button_get(unsigned int client_index, unsigned char input_index, bool* value);
-//extern bool ma_client_input_submit_get(unsigned int client_index, unsigned char input_index, bool* value); shouldn't be able to get this one
+extern bool ma_client_input_submit_get(unsigned int client_index, unsigned char input_index, bool* value);
 extern bool ma_client_input_toggle_get(unsigned int client_index, unsigned char input_index, bool* value);
 extern bool ma_client_input_joystick_get(unsigned int client_index, unsigned char input_index, float* x_value, float* y_value);
 
