@@ -29,7 +29,7 @@ install:
 	echo "Can't install surry"
 
 try: all
-	./bin/snake.out
+	./bin/asteroids.out
 
 run:
 	./server

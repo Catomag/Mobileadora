@@ -209,7 +209,7 @@ void reset() {
 		players[i].entity.rot = angle;
 		players[i].entity.rad = 10;
 		players[i].entity.speed = 24.f;
-		players[i].health = 5;
+		players[i].health = 3;
 		players[i].score = 0;
 		players[i].first = 1;
 
@@ -396,6 +396,7 @@ int main() {
 									spawn_asteroid(x2, y2, cos(angle), sin(angle), asteroids[j].entity.rad / 2.f, asteroids[j].entity.speed * 2);
 									spawn_asteroid(x2, y2, sin(angle), cos(angle), asteroids[j].entity.rad / 2.f, asteroids[j].entity.speed * 2);
 								}
+
 								PlaySoundMulti(collision_sound);
 
 								reset_bullet(&bullets[i]);
@@ -416,8 +417,14 @@ int main() {
 									players[bullets[i].source].score++;
 
 								screen_shake(.5f);
+								players[bullets[i].source].score += 1;
+
+								if(players[j].health == 1)
+									players[bullets[i].source].score += 5 + 10 * players[j].first;
+
 								players[j].health = (players[j].health > 0) * (players[j].health - 1);
 								PlaySoundMulti(collision_sound);
+
 
 								reset_bullet(&bullets[i]);
 								reset_asteroid(&asteroids[j]);
@@ -470,11 +477,11 @@ int main() {
 				bool b2 = 0;
 				ma_client_input_button_get(i, 1, (unsigned char*) & b2);
 				if(b2 && !players[i].shooting && players[i].last_shot + .5f < GetTime()) {
-					shoot(i, dir_x, dir_y, 100.f);
+					shoot(i, dir_x, dir_y, 240.f);
 
 					// add recoil
-					players[i].entity.vel_x -= dir_x * 2.f;
-					players[i].entity.vel_y -= dir_y * 2.f;
+					players[i].entity.vel_x -= dir_x * 1.5f;
+					players[i].entity.vel_y -= dir_y * 1.5f;
 
 					players[i].last_shot = GetTime();
 					players[i].shooting = 1;
@@ -489,7 +496,11 @@ int main() {
 					if(ma_client_active(j) && j != i && players[j].joined && players[j].health) {
 						if(entities_collide((EntityHeader*) &players[j], (EntityHeader*) &players[i])) {
 							players[i].health = 0;
+							players[i].entity.vel_x = 0;
+							players[i].entity.vel_y = 0;
 							players[j].health = 0;
+							players[j].entity.vel_x = 0;
+							players[j].entity.vel_y = 0;
 							PlaySoundMulti(explosion_sound);
 							spawn_explosion(players[i].entity.x, players[i].entity.y);
 							screen_shake(.5f);
@@ -499,7 +510,9 @@ int main() {
 
 				for(int j = 0; j < ASTEROID_COUNT; j++) {
 					if(entities_collide((EntityHeader*) &asteroids[j], (EntityHeader*) &players[i])) {
-						players[i].health = 0;
+							players[i].health = 0;
+							players[i].entity.vel_x = 0;
+							players[i].entity.vel_y = 0;
 						float angle = atan2(players[i].entity.x, players[i].entity.y);
 
 						if(asteroids[j].entity.rad / 2.f > 10.f) {
@@ -518,8 +531,10 @@ int main() {
 			else if(ma_client_active(i) && players[i].joined) {
 				players[i].entity.x = rand() % width;
 				players[i].entity.y = rand() % height;
-				players[i].health = 5;
+				players[i].health = 3;
 				players[i].score = 0;
+				players[i].entity.vel_x = 0;
+				players[i].entity.vel_y = 0;
 			}
 #endif
 		}
@@ -605,7 +620,7 @@ int main() {
 					DrawTriangleLines((Vector2) { x - (10.f * angle_cos), y - (10.f * angle_sin) },
 									  (Vector2) { x - (25.f * angle_sin), y + (25.f * angle_cos) },
 									  (Vector2) { x + (10.f * angle_cos), y + (10.f * angle_sin) },
-									  players[i].health > 2 ? players[i].col : (Color) {players[i].col.r, players[i].col.g, players[i].col.b, (sin(GetTime() * 20)) * 50 + 200});
+									  players[i].health > 1 ? players[i].col : (Color) {players[i].col.r, players[i].col.g, players[i].col.b, (sin(GetTime() * 20)) * 50 + 200});
 
 					DrawText(players[i].name, x - (50.f * angle_sin) - 20, y + (50.f * angle_cos), 15, players[i].col);
 					char score[5];
