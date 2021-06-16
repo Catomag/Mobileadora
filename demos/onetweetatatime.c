@@ -1,8 +1,7 @@
 #include <raylib.h>
 #include <stdio.h>
 #include <string.h>
-#include <Gaia/Hephaestus.h>
-#include "../include/library.h"
+#include "../include/mobileadora.h"
 
 #define MAX_PLAYERS 20
 #define MAX_CHARS 50
@@ -138,24 +137,18 @@ int main() {
 			if(round != 0) {
 				for(int i = 0; i < MAX_PLAYERS; i++) {
 					if(players[i].playing) {
-						h_debug_println();
 						int len = strlen(stories[(i + round) % active_players].text);
-						h_debug_println();
 						unsigned int offset = 0;
-						h_debug_println();
 						if(len > MAX_CHARS)
 							offset = len - MAX_CHARS;
 
 						printf("length: %i\n", len);
 						printf("offset: %i\n", offset);
 						printf("Story %i, so far: \n --- \n %s \n---\n", (i + round) % active_players, stories[(i + round) % active_players].text);
-						h_debug_println();
 						ma_frame_element_text_set(players[i].write_frame, 0, stories[(i + round) % active_players].text + offset);
-						h_debug_println();
 					}
 				}
 			}
-			h_debug_println();
 
 			for(int i = 0; i < MAX_PLAYERS; i++)
 				players[i].submitted = 0;
@@ -197,12 +190,10 @@ int main() {
 				EndDrawing();
 			}
 
-			h_debug_println();
 
 			// deception
 			time = GetTime();
 			countdown = 1.f + GetTime();
-			h_debug_println();
 			while(time < countdown) {
 				time = GetTime();
 
@@ -211,7 +202,6 @@ int main() {
 				DrawText("Collecting responses...", GetScreenWidth() / 2 - 20, GetScreenHeight() / 2, 20, WHITE);
 				EndDrawing();
 			}
-			h_debug_println();
 
 			// force people who haven't submitted into submitting also reset submission
 			for(int i = 0; i < MAX_PLAYERS; i++) {
@@ -221,7 +211,6 @@ int main() {
 					ma_client_input_text_get(i, 0, buffer);
 
 					if(strlen(buffer) > 1) {
-						h_debug_println();
 						players[i].submitted = 1;
 						strcat(stories[i + round].text, buffer);
 						stories[i + round].contributers[stories[i + round].contributions] = i;
@@ -232,7 +221,6 @@ int main() {
 				players[i].submitted = 0;
 			}
 
-			h_debug_println();
 
 			time = GetTime();
 			countdown = 2.f + GetTime();
@@ -245,7 +233,6 @@ int main() {
 				EndDrawing();
 			}
 
-			h_debug_println();
 		}
 
 		// draw waiting music showing which players have submitted and which haven't

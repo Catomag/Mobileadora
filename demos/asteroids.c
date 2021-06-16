@@ -1,13 +1,12 @@
 // THIS FILE IS ONLY HERE FOR TESTING PURPOSES
-#include "../include/library.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <raylib.h>
+
 #include <math.h>
 
-#define _H_DEBUG_MEMORY_
-#include <Gaia/Hephaestus.h>
+#include <raylib.h>
+
+#include "../include/mobileadora.h"
 
 #define PLAYER_COUNT 60
 #define BULLET_COUNT 100
@@ -37,7 +36,7 @@ typedef struct {
 	bool shooting;
 	bool joined;
 	bool first;
-	byte health;
+	unsigned char health;
 
 	unsigned int thicc;
 	char name[5];
@@ -278,7 +277,6 @@ int main() {
 	ma_frame_element_spacer_add(main_frame);
 	for(int i = 0; i < 2; i++)
 		ma_frame_input_button_add(main_frame);
-	ma_frame_element_color_add(main_frame, 255, 255, 255);
 
 	// do stuff with data
 	ma_frame_default(join_frame);
@@ -694,6 +692,4 @@ int main() {
 	CloseWindow();
 	ma_frame_destroy(main_frame);
 	ma_free();
-	h_debug_log_history();
-	h_debug_log_free();
 }

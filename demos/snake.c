@@ -1,21 +1,20 @@
 // THIS FILE IS ONLY HERE FOR TESTING PURPOSES
-#include "../include/library.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 
-#include <raylib.h>
+#include <string.h>
 #include <math.h>
 
-#define _H_DEBUG_MEMORY_
-#include <Gaia/Hephaestus.h>
+#include <raylib.h>
+
+#include "../include/mobileadora.h"
 
 #define PLAYER_COUNT 60
 #define WIDTH 1248
 #define HEIGHT 720
 
 // RULES
-#define WALLS
+//#define WALLS
 //#define WRAP_SELF
 #define RESPAWN
 #define SHAKE
@@ -143,7 +142,6 @@ void reset() {
 
 // Simple form
 int main() {
-
 	ma_init(PLAYER_COUNT, 8000);
 
 	base_frame = ma_frame_create(FRAME_DYNAMIC, ORIENTATION_HORIZONTAL, false, false);
@@ -195,12 +193,6 @@ int main() {
 
 			for(int i = 0; i < PLAYER_COUNT; i++) {
 				if(ma_client_active(i) && players[i].alive) {
-
-					char buf[100];
-					if(ma_client_input_text_get(i, 0, buf)) {
-						printf("%s\n", buf);
-					}
-
 					bool b1 = 0;
 					ma_client_input_button_get(i, 0, (unsigned char*) &b1);
 					if(b1) {
@@ -411,6 +403,4 @@ int main() {
 		if(players[i].frame != NULL)
 			ma_frame_destroy(players[i].frame);
 	ma_frame_destroy(base_frame);
-	h_debug_log_history();
-	h_debug_log_free();
 }

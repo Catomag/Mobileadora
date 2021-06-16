@@ -1,11 +1,10 @@
-#include "../include/library_internal.h"
 #include <stdio.h>
 #include <string.h>
 
 #include <netdb.h>
 #include <assert.h>
 
-#include <Gaia/Hephaestus.h>
+#include "../include/mobileadora_internal.h"
 
 // input definitions
 const Input BUTTON = {
@@ -36,6 +35,7 @@ bool ma_input_get(unsigned int client_index, InputType type, unsigned char input
 	unsigned char current_index = 0;
 	unsigned long current_byte = 0;
 
+	// go through list and find first input which matches index and type, then copy the data to return buffer
 	for(unsigned int i = 0; i < clients[client_index].frame->input_count; i++) {
 		if(clients[client_index].frame->inputs[i].type == type) {
 			if(input_index == current_index) {
