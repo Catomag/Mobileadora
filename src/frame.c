@@ -275,10 +275,6 @@ void ma_frame_element_set(Frame* frame, Element element, unsigned char index, vo
 				if(current_index == index) {
 					unsigned int original_size = current_element_size;
 
-					// move existing data forward / backward
-					//unsigned int bytes_left = frame->raw_data_size - (byte + original_size);
-					//memmove(frame->raw_data + 5 + byte + original_size, (frame->raw_data + 5 + byte) + (element.size - original_size), bytes_left);
-
 					// now copy the new data
 					memcpy(frame->raw_data + 5 + byte, data, element.size);
 					break;

@@ -238,7 +238,7 @@ void ma_free() {
 
 void* ma_client_handler(void* data) {
 	struct timespec delay;
-	delay.tv_nsec = 5 * 1000000; // TODO: remember, 5ms of artificial delay
+	delay.tv_nsec = 5 * 1000000;
 	delay.tv_sec = 0;
 	struct timespec remaining;
 
@@ -298,15 +298,6 @@ void* ma_client_handler(void* data) {
 						payload[j] = payload[j] ^ mask_key[j % 4];
 
 					// handle data
-					//printf("Payload: \n");
-//					for(int j = 0; j < payload_length; j++)
-//						printf("	%i\n", payload[j]);
-//					printf("\n");
-//
-//					printf("payload length: %u\n", payload_length);
-//					printf("input size: %u\n", clients[i].frame->input_size);
-//					printf("\n\n\n");
-
 					unsigned char input_type = payload[0];
 					unsigned char input_index = payload[1];
 					unsigned char current_input_index = 0;
@@ -330,7 +321,6 @@ void* ma_client_handler(void* data) {
 			}
 		}
 		
-		// TODO: make sleep time customizable
 		nanosleep(&delay, &remaining); // sleep for a few milliseconds, or else CPU will explode
 	}
 
@@ -424,7 +414,6 @@ void* ma_client_accept_loop(void* data) {
 
 	return 0;
 }
-
 
 
 

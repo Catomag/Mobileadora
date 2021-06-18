@@ -102,7 +102,7 @@ ma_free();
 
 
 ## Longer Examples
-I made a few examples for you to check out.
+I made a few examples for you to check out. They all depend on [Raylib](https://www.raylib.com/), which is a pretty cool library you should check out AND by default they are all hosted on port 8000.
 
 ### snakes.c
 Classic snake game with multiplayer added! Players get a random snake and do all the typical stuff, eat apples to become larger, dodge walls, and kick ass. (The code here is way prettier than the other demos)
