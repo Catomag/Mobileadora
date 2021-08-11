@@ -1,5 +1,3 @@
-**WARNING THIS IS README IS STILL UNFINISHED, YOU ARE ENTERING THE DANGERZONE**
-
 Mobileadora is a tool to use mobile clients as controllers. The library handles multiple clients and allows the user to request any data input at any time. 
 
 # Overview
@@ -96,6 +94,7 @@ for(int i = 0; i < ma_clients_max_count(); i++) {
 	}
 }
 
+ma_frame_destroy(frame);
 ma_free();
 ```
 
