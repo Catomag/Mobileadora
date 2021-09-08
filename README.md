@@ -1,7 +1,7 @@
 Mobileadora is a tool to use mobile clients as controllers. The library handles multiple clients and allows the user to request any data input at any time. 
 
 # Overview
-The library connects to browsers and uses websockets to communicate with clients. The server uses websockets to ask the client for information periodically. In order to function, the client needs to be able to read and understand the server's messages to generate input. Lucky for you, there is a [sister project](https://github.com/InspiredGoat/MobileadoraClient) to this repository which implements the specification. All you need to do is download that source code, host it on an http server and profit.
+The library connects to browsers to use custom. In order to function, the client needs to be able to read and understand the server's messages to generate input. Lucky for you, there is a [sister project](https://github.com/InspiredGoat/MobileadoraClient) to this repository which implements the specification. All you need to do is download that source code, host it on an http server and profit.
 
 The library is made of two parts:
 
@@ -20,7 +20,7 @@ The library is made of two parts:
 Frames are the "pages" that the client interacts with. Frames store all input types, the overall layout of the controller and any additional elements passed to the client (A header element, some text, etc).
 
 
-Frames must be created and destroyed with `ma_frame_create` and `frame_destroy`
+Frames must be created and destroyed with `ma_frame_create` and `ma_frame_destroy`
 Frames can be copied with `ma_frame_copy`, use this when you want each client to have a unique frame
 
 
@@ -28,7 +28,7 @@ Frames can be made static or dynamic, dynamic frames send info to the server imm
 
 To populate a frame, the `ma_frame_input_*_add` and the `ma_frame_element_*_add` are used 
 
-For clients to receive a frame the `ma_frame_send` function is used, which sets the current frame of the client. If the client is connected, they will instantly be sent that frame. If they are not connected, that frame will be sent to them as soon as they connect. This way you can have something like:
+For clients to receive a frame the `ma_frame_send` function is used, which sets the current frame of the client. If the client is connected, they will instantly be sent that frame. If they are not connected that frame will be sent to them as soon as they connect. This way you can have something like:
 ```
 for(int i = 0; i < ma_clients_max_count(); i++) {
 	ma_frame_send(frame, i);
@@ -40,7 +40,7 @@ and you can be sure that every client that will join will receive that frame, no
 
 
 ## Clients
-Clients store the connection information, the input data in binary as well as the current frame they are using. These things are largely abstracted though. In this library you interact with clients, by sending frames and extracting input from them.
+Clients store the connection information, the input data in binary as well as the current frame they are using. These things are largely abstracted though, in this library you only interact with clients by sending frames and extracting input from them.
 
 The `ma_client_input_*_get` functions allow you to retrieve input from a particular client. The return value is a boolean which is false when the input element couldn't be found and true otherwise. The last parameter is a pointer which will get filled with the client's input information.
 
