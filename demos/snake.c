@@ -1,4 +1,3 @@
-// THIS FILE IS ONLY HERE FOR TESTING PURPOSES
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -21,7 +20,7 @@
 //#define CLASSIC
 
 #define EXPLOSION_COUNT 30
-#define CELL_SIZE 8 
+#define CELL_SIZE 8
 
 #define BOARD_WIDTH  WIDTH / CELL_SIZE
 #define BOARD_HEIGHT HEIGHT / CELL_SIZE
@@ -104,7 +103,7 @@ void spawn_explosion(float x, float y) {
 void player_increase_length(Player* player, int length) {
 	for(int i = 0; i < length; i++) {
 		if(player->thicc < MAX_LENGTH) {
-			player->x[player->thicc] = (player->x[player->thicc - 1]) - player->dir_x; 
+			player->x[player->thicc] = (player->x[player->thicc - 1]) - player->dir_x;
 			player->y[player->thicc] = (player->y[player->thicc - 1]) + player->dir_y;
 
 			player->thicc += 1;
@@ -142,6 +141,18 @@ void reset() {
 
 // Simple form
 int main() {
+
+	SetTraceLogLevel(LOG_FATAL);	
+	InitWindow(WIDTH, HEIGHT, "testapp");
+	Texture explosion_texture = LoadTexture("explosion.png");
+
+	Image background_image = GenImageChecked(WIDTH, HEIGHT, CELL_SIZE, CELL_SIZE, BLACK, (Color) { 20, 20, 20, 255 });
+	Texture2D background_texture = LoadTextureFromImage(background_image);
+
+	InitAudioDevice();
+	Sound num_sound = LoadSound("num.wav");
+	Sound explosion_sound = LoadSound("explosion.wav");
+
 	ma_init(PLAYER_COUNT, 8000);
 
 	base_frame = ma_frame_create(FRAME_DYNAMIC, ORIENTATION_HORIZONTAL, false, false);
@@ -149,20 +160,14 @@ int main() {
 	ma_frame_input_joystick_add(base_frame);
 	ma_frame_element_spacer_add(base_frame);
 	ma_frame_input_button_add(base_frame);
-	
+
 	// do stuff with data
 	ma_frame_print(base_frame);
 	ma_frame_default(base_frame);
 
-	InitWindow(WIDTH, HEIGHT, "testapp");
-	InitAudioDevice();
-	Texture explosion_texture = LoadTexture("demos/explosion.png");
-	Sound num_sound = LoadSound("demos/num.wav");
-	Sound explosion_sound = LoadSound("demos/explosion.wav");
-
 	for(int i = 0; i < EXPLOSION_COUNT; i++)
 		explosions[i].frame = 16;
-	
+
 	bzero(players, PLAYER_COUNT * sizeof(Player));
 	reset();
 
@@ -220,7 +225,7 @@ int main() {
 					// movement
 					float j1_x;
 					float j1_y;
-					if( ma_client_input_joystick_get(i, 0, &j1_x, &j1_y) && 
+					if( ma_client_input_joystick_get(i, 0, &j1_x, &j1_y) &&
 						((tick % DEFAULT_SPEED == 0 && !players[i].sped) || (tick % BOOST_SPEED == 0 && players[i].sped))) {
 #ifdef CLASSIC
 						if(j1_x > .5f)
@@ -349,14 +354,13 @@ int main() {
 			}
 		}
 
+
 		ClearBackground(BLACK);
 		BeginDrawing();
 		BeginMode2D(camera);
-
-		// draw board
-		for(int x = 0; x < BOARD_WIDTH; x++)
-			for(int y = 0; y < BOARD_HEIGHT; y++)
-				DrawRectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, (((y * BOARD_WIDTH + x) + y) % 2 == 0) ? BLACK : (Color) { 20, 20, 20, 255 });
+		
+		// draw background
+		DrawTexture(background_texture, 0, 0, WHITE);
 
 		// draw pellets
 		float glow[4] = {
@@ -382,10 +386,10 @@ int main() {
 			if(frame < 16) {
 				Rectangle source;
 				source.x = (frame % 4) * 64;
-				source.y = (frame / 4) * 64;
+				source.y = (frame % 4) * 64;
 				source.width = 64;
 				source.height = 64;
-				DrawTextureRec(explosion_texture, source, (Vector2) { explosions[i].x - 32, explosions[i].y - 32 }, WHITE);			
+				DrawTextureRec(explosion_texture, source, (Vector2) { explosions[i].x - 32, explosions[i].y - 32 }, WHITE);
 			}
 		}
 
@@ -393,14 +397,16 @@ int main() {
 		EndDrawing();
 	}
 
+	UnloadImage(background_image);
 	UnloadSound(num_sound);
 	UnloadSound(explosion_sound);
 	UnloadTexture(explosion_texture);
 	CloseAudioDevice();
 	CloseWindow();
-	ma_free();
+	ma_deinit();
 	for(int i = 0; i < PLAYER_COUNT; i++)
 		if(players[i].frame != NULL)
 			ma_frame_destroy(players[i].frame);
 	ma_frame_destroy(base_frame);
 }
+

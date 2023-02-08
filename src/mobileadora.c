@@ -29,9 +29,9 @@ unsigned char server_running = 0;
 
 
 
-char base64_alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 // output needs to be 28 bytes, data needs to be 20 bytes
 void hash_to_base64(unsigned char* data, char* output) {
+	static char base64_alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	unsigned char current_bit = 0;
 	unsigned char group_count = 1;
 	unsigned char index = 0;
@@ -206,7 +206,7 @@ void ma_init(unsigned int max_clients, unsigned short port) {
 		perror("failed to bind to port");
 		exit(1);
 	}
-	
+
 	// listen
 	if(listen(server_fd, max_clients) != 0) {
 		perror("failed to listen to port");
@@ -223,7 +223,7 @@ void ma_init(unsigned int max_clients, unsigned short port) {
 
 
 
-void ma_free() {
+void ma_deinit() {
 	server_running = 0;
 	pthread_join(client_thread, NULL);
 
@@ -247,6 +247,7 @@ void* ma_client_handler(void* data) {
 
 	while(server_running) {
 
+		/* printf("received info!!\n"); */
 		struct pollfd pollfds[clients_size];
 		for(uint i = 0; i < clients_size; i++) {
 			pollfds[i].fd = clients[i].socket_fd;
@@ -256,6 +257,7 @@ void* ma_client_handler(void* data) {
 
 		for(uint i = 0; i < clients_size; i++) {
 			if(clients[i].active && (pollfds[i].revents & POLLIN) && (pollfds[i].revents & POLLOUT)) {
+				/* printf("received info!!\n"); */
 				// receive dataframe
 				unsigned char header[2];
 				unsigned char mask_key[4];
@@ -308,6 +310,7 @@ void* ma_client_handler(void* data) {
 						// current type matches type
 						if(clients[i].frame->inputs[j].type == input_type) {
 							if(input_index == current_input_index) {
+								/* printf("received info!!\n"); */
 								unsigned int input_size = clients[i].frame->inputs[j].size;
 
 								memcpy(&clients[i].input_data[current_byte], &payload[2], input_size);
@@ -320,7 +323,7 @@ void* ma_client_handler(void* data) {
 				}
 			}
 		}
-		
+
 		nanosleep(&delay, &remaining); // sleep for a few milliseconds, or else CPU will explode
 	}
 
@@ -349,17 +352,18 @@ void* ma_client_accept_loop(void* data) {
 
 			// Websocket handshake
 
-			char request[500];
+			char request[800];
 
-			recv(client_fd, &request, 500, 0);
+			recv(client_fd, &request, 800, 0);
 
-			char upgrade_accept[] = "Upgrade: websocket\0";
+			char upgrade_accept[] = "Upgrade: websocket";
 			char* res = strstr(request, upgrade_accept);
 
 			if(!res) {
 				// Not a websocket connection
 				send(client_fd, "Sorry lad, websockets ONLY!", 26, MSG_NOSIGNAL);
 				printf("handshake failed\n");
+				/* printf("received: %s\n", res); */
 				close(client_fd);
 			}
 			else if(clients_count >= clients_size) {
@@ -390,7 +394,7 @@ void* ma_client_accept_loop(void* data) {
 				response_key[28] = '\0';
 
 				// Format HTTP response (buffer is slightly bigger than needed)
-				char response[140] = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "; 
+				char response[140] = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ";
 				strcat(response, response_key);
 				strcat(response, "\r\n\r\n");
 
@@ -414,6 +418,4 @@ void* ma_client_accept_loop(void* data) {
 
 	return 0;
 }
-
-
 

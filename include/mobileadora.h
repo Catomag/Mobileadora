@@ -28,7 +28,7 @@ typedef enum {
 // Core library functions
 
 extern void ma_init(unsigned int max_clients, unsigned short port); // starts server and creates separate thread to handle clients
-extern void ma_free(); // stops library and frees allocated resources 
+extern void ma_deinit(); // stops library and frees allocated resources 
 
 extern void ma_flush(); // resets all client info (forcefully sets everything to 0)
 extern void ma_fetch(); // manually asks clients for data, used in static frames

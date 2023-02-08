@@ -6,7 +6,7 @@ DEMOS_SRC = $(addprefix src/, $(DEMOS_SOURCES))
 OBJ = $(addsuffix .o, $(addprefix bin/, $(basename $(notdir $(SRC)))))
 DEMOS_OBJ = $(addsuffix .out, $(addprefix bin/, $(basename $(notdir $(DEMOS_SRC)))));
 INCLUDE = -I include
-CFLAGS = -pedantic -W -O2
+CFLAGS = -pedantic -W -g #-O2
 
 all: objects demos
 
@@ -18,13 +18,14 @@ demos: $(DEMOS_OBJ)
 
 
 bin/%.o : src/%.c
-	clang $(INCLUDE) $(CFLAGS) -c $< -o $@
+	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
 
 bin/%.out: demos/%.c
-	clang -W $(OBJ) $^ -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
+	$(CC) -W $(OBJ) $^ $(CFLAGS) -lpthread -lm -ldl -lcrypto -lssl -lraylib -o $@
 
 clean:
-	rm -f bin/*
+	rm -f bin/*.o
+	rm -f bin/*.out
 
 install:
 	echo "Can't install surry"

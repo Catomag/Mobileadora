@@ -8,15 +8,19 @@
 
 #include "../include/mobileadora.h"
 
-#define PLAYER_COUNT 60
+#define PLAYER_COUNT 6
 #define BULLET_COUNT 100
+#define BULLET_VEL 2.f
 #define ASTEROID_COUNT 40
 #define EXPLOSION_COUNT 40
 #define EXPLOSION_FRAMES 16
 
+#define TEST() printf("No error in line %i, file %s", __LINE__, __FILE__);
+
 // RULES
 #define RESPAWN
-//#define LASER
+#define LASER
+#define RECOIL
 
 typedef struct {
 	bool enabled;
@@ -179,8 +183,8 @@ void shoot(int player_index, float dir_x, float dir_y, float vel) {
 	int i = player_index;
 	bullets[bullet_current].entity.x = players[i].entity.x + dir_x * 30.f;
 	bullets[bullet_current].entity.y = players[i].entity.y + dir_y * 30.f;
-	bullets[bullet_current].entity.vel_x = dir_x;
-	bullets[bullet_current].entity.vel_y = dir_y;
+	bullets[bullet_current].entity.vel_x = dir_x * vel;
+	bullets[bullet_current].entity.vel_y = dir_y * vel;
 	bullets[bullet_current].entity.enabled = 1;
 	bullets[bullet_current].source = i;
 	bullet_current = (bullet_current + 1) % BULLET_COUNT;
@@ -195,10 +199,13 @@ void reset() {
 		players[i].entity.y = rand() % height;
 
 		players[i].thicc = 1;
+
+		// pick from nice color array
 		if(i < 18) {
 			players[i].col = GetColor(colors[i]);
 			players[i].col.a = 255;
 		}
+		// generate random color if no more default colors are available
 		else
 			players[i].col = (Color) { rand()%255, rand()%255, rand()%255, 255 };
 
@@ -253,7 +260,7 @@ bool entities_collide(EntityHeader* a, EntityHeader* b) {
 	float x2 = b->x;
 	float y2 = b->y;
 
-	return ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < rad * rad) && (a->enabled) && (b->enabled); 
+	return ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < rad * rad) && (a->enabled) && (b->enabled);
 }
 
 void screen_shake(float duration) {
@@ -286,19 +293,20 @@ int main() {
 	for(int i = 0; i < EXPLOSION_COUNT; i++)
 		explosions[i].frame = 16;
 
+	SetTraceLogLevel(LOG_FATAL);
 	InitWindow(width, height, "testapp");
-	Texture2D crown_texture = LoadTexture("demos/crown.png");
-	Texture2D explosion_texture = LoadTexture("demos/explosion.png");
+	Texture2D crown_texture = LoadTexture("crown.png");
+	Texture2D explosion_texture = LoadTexture("explosion.png");
 	float explosion_frame_time = 0;
 
 	InitAudioDevice();
-	Sound explosion_sound = LoadSound("demos/explosion.wav");
-	Sound collision_sound = LoadSound("demos/collision.wav");
-	Sound shoot_sound = LoadSound("demos/shooting.wav");
-	Sound thrust_sound = LoadSound("demos/thruster.wav");
 
-	Music music = LoadMusicStream("demos/pushingyourself.ogg");
-	
+	Sound explosion_sound = LoadSound("explosion.wav");
+	Sound collision_sound = LoadSound("collision.wav");
+	Sound shoot_sound = LoadSound("shooting.wav");
+	Sound thrust_sound = LoadSound("thruster.wav");
+	Sound music_sound = LoadSound("pushingyourself.wav");
+
 	reset();
 
 	float delta_time = 0;
@@ -308,7 +316,7 @@ int main() {
 	SetWindowState(FLAG_WINDOW_RESIZABLE);
 	SetTargetFPS(60);
 
-	PlayMusicStream(music);
+	PlaySoundMulti(music_sound);
 
 	float last_asteroid_time = GetTime();
 	float asteroid_cooldown = 5.f;
@@ -324,6 +332,7 @@ int main() {
 
 			if(ma_client_active(i) && !players[i].joined) {
 				ma_client_input_text_get(i, 0, players[i].name);
+				printf("new player that hasn't joined!\n");
 				if(players[i].name[0] != 0) {
 					ma_frame_send(players[i].frame, i);
 					players[i].joined = 1;
@@ -447,7 +456,7 @@ int main() {
 			if(ma_client_active(i) && players[i].joined && players[i].health) {
 
 				bool b1 = 0;
-				ma_client_input_button_get(i, 0, (unsigned char*) &b1);
+				ma_client_input_button_get(i, 0, &b1);
 
 				float angle = players[i].entity.rot - PI / 2.f;
 				float dir_x = cos(angle);
@@ -473,13 +482,15 @@ int main() {
 
 				// shooting
 				bool b2 = 0;
-				ma_client_input_button_get(i, 1, (unsigned char*) & b2);
+				ma_client_input_button_get(i, 1, &b2);
 				if(b2 && !players[i].shooting && players[i].last_shot + .5f < GetTime()) {
-					shoot(i, dir_x, dir_y, 240.f);
+					shoot(i, dir_x, dir_y, BULLET_VEL);
 
 					// add recoil
+#ifdef RECOIL
 					players[i].entity.vel_x -= dir_x * 1.5f;
 					players[i].entity.vel_y -= dir_y * 1.5f;
+#endif
 
 					players[i].last_shot = GetTime();
 					players[i].shooting = 1;
@@ -586,7 +597,7 @@ int main() {
 			DrawText(string, GetScreenWidth() / 2.f - MeasureText(string, 30) / 2.f, GetScreenHeight() / 2.f, 30, WHITE);
 			EndDrawing();
 			float timer = GetTime() + .2f;
-			while(timer > GetTime());		
+			while(timer > GetTime());
 			reset();
 		}
 #endif
@@ -608,7 +619,7 @@ int main() {
 			if(ma_client_active(i) && players[i].joined && players[i].health) {
 				float angle = players[i].entity.rot;
 				float angle_cos = cos(angle + PI);
-				float angle_sin = sin(angle + PI); 
+				float angle_sin = sin(angle + PI);
 
 				// very intuitive matrix maths
 				for(int j = 0; j < 5; j++) {
@@ -671,25 +682,29 @@ int main() {
 			if(frame < EXPLOSION_FRAMES) {
 				Rectangle source;
 				source.x = (frame % 4) * 64;
-				source.y = (frame / 4) * 64;
+				source.y = ((int)(frame / 4) * 64);
 				source.width = 64;
 				source.height = 64;
-				DrawTextureRec(explosion_texture, source, (Vector2) { explosions[i].x - 32, explosions[i].y - 32 }, WHITE);			
+				DrawTextureRec(explosion_texture, source, (Vector2) { explosions[i].x - 32, explosions[i].y - 32 }, WHITE);
 			}
 		}
 
 		EndMode2D();
 		EndDrawing();
+
+		if (!IsSoundPlaying(music_sound)) {
+			PlaySound(music_sound);
+		}
 	}
 
 	UnloadSound(collision_sound);
 	UnloadSound(shoot_sound);
 	UnloadSound(explosion_sound);
 	UnloadSound(thrust_sound);
-	UnloadMusicStream(music);
 	StopSoundMulti();
 	CloseAudioDevice();
 	CloseWindow();
 	ma_frame_destroy(main_frame);
-	ma_free();
+	ma_deinit();
 }
+

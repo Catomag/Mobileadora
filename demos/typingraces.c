@@ -37,10 +37,10 @@ const int colors[] = {
 
 Player players[PLAYER_COUNT];
 
-const char text_a[] = 
+const char text_a[] =
 "Id just like to interject for a moment. What youre refering to as Linux, is in fact, GNU/Linux, or as Ive recently taken to calling it, GNU plus Linux. Linux is not an operating system unto itself, but rather another free component of a fully functioning GNU system made useful by the GNU corelibs, shell utilities and vital system components comprising a full OS as defined by POSIX.\nMany computer users run a modified version of the GNU system every day, without realizing it. Through a peculiar turn of events, the version of GNU which is widely used today is often called Linux, and many of its users are not aware that it is basically the GNU system, developed by the GNU Project.\nThere really is a Linux, and these people are using it, but it is just a part of the system they use. Linux is the kernel: the program in the system that allocates the machines resources to the other programs that you run. The kernel is an essential part of an operating system, but useless by itself; it can only function in the context of a complete operating system. Linux is normally used in combination with the GNU operating system: the whole system is basically GNU with Linux added, or GNU/Linux. All the so-called Linux distributions are really distributions of GNU/Linux!";
 
-char* current_text = text_a;
+char* current_text;
 unsigned int text_length = 0;
 
 float dist_table[128];
@@ -48,7 +48,11 @@ float line_height;
 
 
 int main() {
+	// set current text to text a
+	current_text = (char*) text_a;
+
 	ma_init(PLAYER_COUNT, 8000);
+
 	Frame* join_frame = ma_frame_create(FRAME_STATIC, ORIENTATION_VERTICAL, 1, 0);
 	ma_frame_element_h3_add(join_frame, "NAME:");
 	ma_frame_input_text_add(join_frame, 15);
@@ -59,7 +63,7 @@ int main() {
 	ma_frame_input_text_add(main_frame, 2000);
 	ma_frame_default(join_frame);
 
-	
+
 	InitWindow(1280, 720, "testapp");
 	Font roboto_font = LoadFontEx("demos/roboto.ttf", 80, 0, 0);
 	SetTextureFilter(roboto_font.texture, TEXTURE_FILTER_BILINEAR);
@@ -115,7 +119,7 @@ int main() {
 		BeginDrawing();
 		ClearBackground(WHITE);
 		DrawRectangle(100, 100, GetScreenWidth() - 200, GetScreenHeight() - 200, GRAY);
-		
+
 		for(int i = 0; i < PLAYER_COUNT; i++) {
 			if(ma_client_active(i)) {
 				char score[5];
@@ -146,7 +150,7 @@ int main() {
 			}
 		}
 
-		DrawTextRec(roboto_font, current_text, (Rectangle) { 100, 100 - y_off, GetScreenWidth() - 200, GetScreenHeight() - 200 + y_off }, 40, 0.f, 0, BLACK);
+		//DrawTextRec(roboto_font, current_text, (Rectangle) { 100, 100 - y_off, GetScreenWidth() - 200, GetScreenHeight() - 200 + y_off }, 40, 0.f, 0, BLACK);
 
 		DrawRectangle(0, 0, GetScreenWidth(), 100, WHITE);
 		EndDrawing();
@@ -156,6 +160,7 @@ int main() {
 	CloseWindow();
 	ma_frame_destroy(main_frame);
 	ma_frame_destroy(join_frame);
-	ma_free();
+	ma_deinit();
 	return 0;
 }
+

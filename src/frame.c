@@ -18,7 +18,7 @@ Frame* default_frame = NULL;
 //
 // |--------------------------HEADER----------------------------------------------------------------------------------|---------INPUT-0-0-------|---INPUT-N---|--repeat for elem->
 // [[type_header]-[frame_type]-[frame_orientation]-[frame_resizeable]-[frame_scrollable]-[input_count]-[element_count] [input_type]-[input-size] [    ...    ]]
-//	4 bits,	   	  1 bit,	   1 bit,			   1 bit,	 	 	  1 bit			 	 1 byte,	   1 byte			 1 byte,	  4 bytes.	
+//	4 bits,	   	  1 bit,	   1 bit,			   1 bit,	 	 	  1 bit			 	 1 byte,	   1 byte			 1 byte,	  4 bytes.
 //
 // |------------------------------------------------------------------------------------------------------------------|-------------------------|-------------|
 
@@ -124,8 +124,8 @@ Frame* ma_frame_copy(Frame* frame) {
 	frame_copy->raw_data = malloc(frame->raw_data_allocated);
 	memcpy(frame_copy->raw_data, frame->raw_data, frame->raw_data_size);
 
-	ma_frame_print(frame);
-	ma_frame_print(frame_copy);
+	//ma_frame_print(frame);
+	//ma_frame_print(frame_copy);
 
 	return frame_copy;
 }
@@ -318,3 +318,4 @@ void ma_frame_print(Frame* frame) {
 	printf("element size: %u\n", frame->element_size);
 	printf("element count: %u\n", frame->element_count);
 }
+
