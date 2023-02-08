@@ -65,7 +65,7 @@ int main() {
 
 
 	InitWindow(1280, 720, "testapp");
-	Font roboto_font = LoadFontEx("demos/roboto.ttf", 80, 0, 0);
+	Font roboto_font = LoadFontEx("roboto.ttf", 80, 0, 0);
 	SetTextureFilter(roboto_font.texture, TEXTURE_FILTER_BILINEAR);
 
 	char dummy_text[2] = "\0\0";

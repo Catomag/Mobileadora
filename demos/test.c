@@ -41,8 +41,6 @@ int main() {
 	ma_frame_element_h1_add(frame2, "WHAT IS YOUR NAME?");
 	ma_frame_element_break_add(frame2);
 	ma_frame_element_break_add(frame2);
-	ma_frame_element_break_add(frame2);
-	ma_frame_element_break_add(frame2);
 	ma_frame_input_text_add(frame2, 20);
 	ma_frame_input_submit_add(frame2);
 
