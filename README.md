@@ -1,5 +1,3 @@
-**WARNING THIS IS README IS STILL UNFINISHED, YOU ARE ENTERING THE DANGERZONE**
-
 Mobileadora is a tool to use mobile clients as controllers. The library handles multiple clients and allows the user to request any data input at any time. 
 
 # Overview
@@ -61,13 +59,13 @@ The `ma_client_input_*_get` functions allow you to retrieve input from a particu
 ## Basic usage
 
 The `ma_init` function starts off 2 threads which control the entire library, it must always be called first.
-The `ma_free` function quits all threads and frees all library stuff. (apart from frames)
+The `ma_deinit` function quits all threads and frees all library stuff. (apart from frames)
 ```
 ma_init(...); // initialize the library
 
 // do stuff with library
 
-ma_free();
+ma_deinit();
 ```
 
 A more complete example, ask for people's names and print them
@@ -96,6 +94,7 @@ for(int i = 0; i < ma_clients_max_count(); i++) {
 	}
 }
 
+ma_frame_destroy(frame);
 ma_free();
 ```
 
@@ -114,3 +113,16 @@ Game of asteroids, which is largely incomplete, players get points for shooting 
 A game of typeracer on a very enticing text
 
 ### more soon maybe
+
+
+# Install
+
+```
+git clone 'https://github.com/inspiredgoat/mobileadora'
+cd mobileadora
+make all
+```
+
+
+
+

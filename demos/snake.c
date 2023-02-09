@@ -281,7 +281,7 @@ int main() {
 
 						if(was_alive != players[i].alive) {
 							spawn_explosion(players[i].x[0] * CELL_SIZE, players[i].y[0] * CELL_SIZE);
-							screen_shake(.8f);
+							screen_shake(.4f);
 							PlaySoundMulti(explosion_sound);
 						}
 #endif
@@ -312,7 +312,7 @@ int main() {
 										(int) players[i].y[0] == (int) players[j].y[k] && players[j].color.a > 100) {
 										players[i].alive = 0;
 										spawn_explosion(players[i].x[0] * CELL_SIZE, players[i].y[0] * CELL_SIZE);
-										screen_shake(.8f);
+										screen_shake(.4f);
 										PlaySoundMulti(explosion_sound);
 									}
 								}
@@ -336,8 +336,8 @@ int main() {
 
 		// screen shake
 		if(shake_duration > 0) {
-			camera.offset.x += (rand() % 20 - 10);
-			camera.offset.y += (rand() % 20 - 10);
+			camera.offset.x += (rand() % 14 - 7);
+			camera.offset.y += (rand() % 14 - 7);
 			shake_duration -= delta;
 		}
 		else {
