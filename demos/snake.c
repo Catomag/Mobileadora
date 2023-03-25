@@ -9,18 +9,18 @@
 #include "../include/mobileadora.h"
 
 #define PLAYER_COUNT 60
-#define WIDTH 1248
-#define HEIGHT 720
+#define WIDTH 1920
+#define HEIGHT 1080
 
 // RULES
 //#define WALLS
 //#define WRAP_SELF
-#define RESPAWN
+/* #define RESPAWN */
 #define SHAKE
-//#define CLASSIC
+/* #define CLASSIC */
 
 #define EXPLOSION_COUNT 30
-#define CELL_SIZE 8
+#define CELL_SIZE 4
 
 #define BOARD_WIDTH  WIDTH / CELL_SIZE
 #define BOARD_HEIGHT HEIGHT / CELL_SIZE
@@ -78,6 +78,8 @@ const int colors[] = {
 };
 
 Frame* base_frame;
+Frame* death_frame;
+Frame* win_frame;
 Player players[PLAYER_COUNT];
 Pellet pellets[PELLET_COUNT];
 
@@ -85,8 +87,7 @@ Pellet pellets[PELLET_COUNT];
 Explosion explosions[EXPLOSION_COUNT];
 Camera2D camera = { 0 };
 bool camera_shaking = 0;
-float shake_duration = 0;
-unsigned int explosion_current = 0;
+float shake_duration = 0; unsigned int explosion_current = 0;
 
 void screen_shake(float duration) {
 	camera_shaking = 1;
@@ -134,7 +135,8 @@ void reset() {
 		if(players[i].frame == NULL)
 			players[i].frame = ma_frame_copy(base_frame);
 
-		ma_frame_element_color_set(players[i].frame, 0, players[i].color.r, players[i].color.g, players[i].color.b);
+		players[i].frame = base_frame;
+		/* ma_frame_element_color_set(players[i].frame, 0, players[i].color.r, players[i].color.g, players[i].color.b); */
 		ma_frame_send(players[i].frame, i);
 	}
 }
@@ -144,6 +146,7 @@ int main() {
 
 	SetTraceLogLevel(LOG_FATAL);	
 	InitWindow(WIDTH, HEIGHT, "testapp");
+	ToggleFullscreen();
 	Texture explosion_texture = LoadTexture("explosion.png");
 
 	Image background_image = GenImageChecked(WIDTH, HEIGHT, CELL_SIZE, CELL_SIZE, BLACK, (Color) { 20, 20, 20, 255 });
@@ -152,6 +155,7 @@ int main() {
 	InitAudioDevice();
 	Sound num_sound = LoadSound("num.wav");
 	Sound explosion_sound = LoadSound("explosion.wav");
+	Sound music_sound = LoadSound("pushingyourself.wav");
 
 	ma_init(PLAYER_COUNT, 8000);
 
@@ -162,8 +166,11 @@ int main() {
 	ma_frame_input_button_add(base_frame);
 
 	// do stuff with data
-	ma_frame_print(base_frame);
-	ma_frame_default(base_frame);
+	death_frame = ma_frame_create(FRAME_DYNAMIC, ORIENTATION_HORIZONTAL, false, false);
+	ma_frame_element_text_add(death_frame, "You died, don't worry mate you'll respawn in a bit");
+	
+	win_frame = ma_frame_create(FRAME_DYNAMIC, ORIENTATION_HORIZONTAL, false, false);
+	ma_frame_element_text_add(win_frame, "&#127942; You won, congrats! &#127942;");
 
 	for(int i = 0; i < EXPLOSION_COUNT; i++)
 		explosions[i].frame = 16;
@@ -182,6 +189,7 @@ int main() {
 	unsigned long tick = 0;
 
 	SetTargetFPS(60);
+	PlaySound(music_sound);
 
 	while(!WindowShouldClose()) {
 		time = GetTime();
@@ -330,6 +338,49 @@ int main() {
 					players[i].x[0] = rand() % WIDTH;
 					players[i].y[0] = rand() % HEIGHT;
 				}
+#else
+				else {
+					// check if everyone except one is dead
+					// if true display round winner
+					int dead_players = 0;
+					int alive_players = 0;
+					int last_alive_index = 0;
+				
+					for (int j = 0; j < PLAYER_COUNT; j++) {
+						if (players[j].alive == 1 && ma_client_active(j) == 1) {
+							alive_players += 1;	
+							last_alive_index = j;
+						}
+						else if (ma_client_active(j)) {
+							if (players[j].frame != death_frame) {
+								players[j].frame = death_frame;
+								ma_frame_send(death_frame, j);
+							}
+						}
+					}
+					if (alive_players == 1 && ma_client_active_count() > 1) {
+						float timer = 5;
+						char buf[50];
+						memset(buf, 0, 50);
+
+						ma_frame_send(win_frame, last_alive_index);
+
+						StopSound(music_sound);
+						while (timer > 0.01f) {
+							BeginDrawing();
+							ClearBackground(BLACK);
+
+							sprintf(buf, "This COLOR, WINS! Restarting in %.2f...", timer);
+							float f = MeasureText(buf, 30);
+							DrawText(buf, (WIDTH / 2.f) - (f / 2), HEIGHT / 2.f - 15.f, 30, players[last_alive_index].color);
+							timer -= GetFrameTime();
+
+							EndDrawing();
+						}
+						PlaySound(music_sound);
+						reset();
+					}
+				}
 #endif
 			}
 		}
@@ -395,12 +446,17 @@ int main() {
 
 		EndMode2D();
 		EndDrawing();
+		if (!IsSoundPlaying(music_sound)) {
+			PlaySound(music_sound);
+		}
 	}
 
 	UnloadImage(background_image);
 	UnloadSound(num_sound);
 	UnloadSound(explosion_sound);
+	UnloadSound(music_sound);
 	UnloadTexture(explosion_texture);
+	StopSoundMulti();
 	CloseAudioDevice();
 	CloseWindow();
 	ma_deinit();

@@ -295,6 +295,9 @@ int main() {
 
 	SetTraceLogLevel(LOG_FATAL);
 	InitWindow(width, height, "testapp");
+
+	ToggleFullscreen();
+
 	Texture2D crown_texture = LoadTexture("crown.png");
 	Texture2D explosion_texture = LoadTexture("explosion.png");
 	float explosion_frame_time = 0;
@@ -332,7 +335,7 @@ int main() {
 
 			if(ma_client_active(i) && !players[i].joined) {
 				ma_client_input_text_get(i, 0, players[i].name);
-				printf("new player that hasn't joined!\n");
+				/* printf("new player that hasn't joined!\n"); */
 				if(players[i].name[0] != 0) {
 					ma_frame_send(players[i].frame, i);
 					players[i].joined = 1;
