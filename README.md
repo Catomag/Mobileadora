@@ -95,7 +95,7 @@ for(int i = 0; i < ma_clients_max_count(); i++) {
 }
 
 ma_frame_destroy(frame);
-ma_free();
+ma_deinit();
 ```
 
 

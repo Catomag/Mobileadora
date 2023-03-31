@@ -9,7 +9,6 @@ typedef unsigned char bool;
 typedef struct _Frame Frame;
 typedef struct _Input Input;
 typedef struct _Element Element;
-
 #define NULL_CLIENT ((unsigned int) -1)
 #define ALL_CLIENTS ((unsigned int) -1)
 
