@@ -296,7 +296,7 @@ int main() {
 	SetTraceLogLevel(LOG_FATAL);
 	InitWindow(width, height, "testapp");
 
-	ToggleFullscreen();
+	/* ToggleFullscreen(); */
 
 	Texture2D crown_texture = LoadTexture("crown.png");
 	Texture2D explosion_texture = LoadTexture("explosion.png");
@@ -319,7 +319,7 @@ int main() {
 	SetWindowState(FLAG_WINDOW_RESIZABLE);
 	SetTargetFPS(60);
 
-	PlaySoundMulti(music_sound);
+	PlaySound(music_sound);
 
 	float last_asteroid_time = GetTime();
 	float asteroid_cooldown = 5.f;
@@ -407,7 +407,7 @@ int main() {
 									spawn_asteroid(x2, y2, sin(angle), cos(angle), asteroids[j].entity.rad / 2.f, asteroids[j].entity.speed * 2);
 								}
 
-								PlaySoundMulti(collision_sound);
+								PlaySound(collision_sound);
 
 								reset_bullet(&bullets[i]);
 								reset_asteroid(&asteroids[j]);
@@ -433,7 +433,7 @@ int main() {
 									players[bullets[i].source].score += 5 + 10 * players[j].first;
 
 								players[j].health = (players[j].health > 0) * (players[j].health - 1);
-								PlaySoundMulti(collision_sound);
+								PlaySound(collision_sound);
 
 
 								reset_bullet(&bullets[i]);
@@ -497,7 +497,7 @@ int main() {
 
 					players[i].last_shot = GetTime();
 					players[i].shooting = 1;
-					PlaySoundMulti(shoot_sound);
+					PlaySound(shoot_sound);
 				}
 				else if(!b2)
 					players[i].shooting = 0;
@@ -513,7 +513,7 @@ int main() {
 							players[j].health = 0;
 							players[j].entity.vel_x = 0;
 							players[j].entity.vel_y = 0;
-							PlaySoundMulti(explosion_sound);
+							PlaySound(explosion_sound);
 							spawn_explosion(players[i].entity.x, players[i].entity.y);
 							screen_shake(.5f);
 						}
@@ -530,10 +530,10 @@ int main() {
 						if(asteroids[j].entity.rad / 2.f > 10.f) {
 							spawn_asteroid(asteroids[j].entity.x, asteroids[j].entity.y, cos(angle), sin(angle), asteroids[j].entity.rad / 2.f, asteroids[j].entity.speed * 2);
 							spawn_asteroid(asteroids[j].entity.x, asteroids[j].entity.y, sin(angle), cos(angle), asteroids[j].entity.rad / 2.f, asteroids[j].entity.speed * 2);
-							PlaySoundMulti(explosion_sound);
+							PlaySound(explosion_sound);
 						}
 						reset_asteroid(&asteroids[j]);
-						PlaySoundMulti(explosion_sound);
+						PlaySound(explosion_sound);
 						spawn_explosion(players[i].entity.x, players[i].entity.y);
 						screen_shake(.5f);
 					}
@@ -704,7 +704,6 @@ int main() {
 	UnloadSound(shoot_sound);
 	UnloadSound(explosion_sound);
 	UnloadSound(thrust_sound);
-	StopSoundMulti();
 	CloseAudioDevice();
 	CloseWindow();
 	ma_frame_destroy(main_frame);

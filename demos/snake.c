@@ -20,7 +20,7 @@
 /* #define CLASSIC */
 
 #define EXPLOSION_COUNT 30
-#define CELL_SIZE 4
+#define CELL_SIZE 8
 
 #define BOARD_WIDTH  WIDTH / CELL_SIZE
 #define BOARD_HEIGHT HEIGHT / CELL_SIZE
@@ -42,6 +42,7 @@ typedef struct {
 	bool alive;
 	Color color;
 	Frame* frame;
+	unsigned int wins;
 } Player;
 
 typedef struct {
@@ -290,7 +291,7 @@ int main() {
 						if(was_alive != players[i].alive) {
 							spawn_explosion(players[i].x[0] * CELL_SIZE, players[i].y[0] * CELL_SIZE);
 							screen_shake(.4f);
-							PlaySoundMulti(explosion_sound);
+							PlaySound(explosion_sound);
 						}
 #endif
 					}
@@ -304,7 +305,7 @@ int main() {
 							pellets[j].x = rand() % BOARD_WIDTH;
 							pellets[j].y = rand() % BOARD_HEIGHT;
 							player_increase_length(&players[i], 5);
-							PlaySoundMulti(num_sound);
+							PlaySound(num_sound);
 						}
 					}
 
@@ -321,7 +322,7 @@ int main() {
 										players[i].alive = 0;
 										spawn_explosion(players[i].x[0] * CELL_SIZE, players[i].y[0] * CELL_SIZE);
 										screen_shake(.4f);
-										PlaySoundMulti(explosion_sound);
+										PlaySound(explosion_sound);
 									}
 								}
 							}
@@ -359,7 +360,7 @@ int main() {
 						}
 					}
 					if (alive_players == 1 && ma_client_active_count() > 1) {
-						float timer = 5;
+						float timer = 3;
 						char buf[50];
 						memset(buf, 0, 50);
 
@@ -370,9 +371,48 @@ int main() {
 							BeginDrawing();
 							ClearBackground(BLACK);
 
+							players[last_alive_index].wins ++;
 							sprintf(buf, "This COLOR, WINS! Restarting in %.2f...", timer);
 							float f = MeasureText(buf, 30);
 							DrawText(buf, (WIDTH / 2.f) - (f / 2), HEIGHT / 2.f - 15.f, 30, players[last_alive_index].color);
+							timer -= GetFrameTime();
+
+							/* // draw leaderboard */
+							/* int first_i		= 0; */
+							/* int second_i	= 0; */
+							/* int third_i		= 0; */
+							/* for (int i = 0; i < PLAYER_COUNT; i++) */
+							/* { */
+							/* 	if (players[i].wins > players[first_i].wins) */
+							/* 	{ */
+							/* 		first_i = i; */
+							/* 	} */
+							/* 	else if (players[i].wins > players[second_i].wins) */
+							/* 	{ */
+							/* 		second_i = i; */
+							/* 	} */
+							/* 	else if (players[i].wins > players[third_i].wins) */
+							/* 	{ */
+							/* 		third_i = i; */
+							/* 	} */
+							/* } */
+
+							/* if (ma_client_active_count() > 1) */
+							/* { */
+							/* 	sprintf(buf, "🏆 %i wins", players[first_i].wins); */
+							/* 	DrawText(buf, (WIDTH / 2.f) - (100.f / 2), HEIGHT / 2.f - 15.f + 60, 30, players[first_i].color); */
+							/* } */
+							/* else if (ma_client_active_count() >= 2) */
+							/* { */
+							/* 	sprintf(buf, "🥈 %i wins", players[second_i].wins); */
+							/* 	DrawText(buf, (WIDTH / 2.f) - (100.f / 2), HEIGHT / 2.f - 15.f + 120, 30, players[second_i].color); */
+							/* } */
+							/* else if (ma_client_active_count() >= 3) */
+							/* { */
+							/* 	sprintf(buf, "🥉 %i wins", players[third_i].wins); */
+							/* 	DrawText(buf, (WIDTH / 2.f) - (100.f / 2), HEIGHT / 2.f - 15.f + 120, 30, players[third_i].color); */
+							/* } */
+
 							timer -= GetFrameTime();
 
 							EndDrawing();
@@ -456,7 +496,6 @@ int main() {
 	UnloadSound(explosion_sound);
 	UnloadSound(music_sound);
 	UnloadTexture(explosion_texture);
-	StopSoundMulti();
 	CloseAudioDevice();
 	CloseWindow();
 	ma_deinit();
