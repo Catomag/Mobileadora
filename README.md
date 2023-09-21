@@ -1,7 +1,7 @@
 Mobileadora is a tool to use mobile clients as controllers. The library handles multiple clients and allows the user to request any data input at any time. 
 
 # Overview
-The library connects to browsers to use custom. In order to function, the client needs to be able to read and understand the server's messages to generate input. Lucky for you, there is a [sister project](https://github.com/InspiredGoat/MobileadoraClient) to this repository which implements the specification. All you need to do is download that source code, host it on an http server and profit.
+The library connects to browsers to use custom controls. In order to function, the client needs to be able to read and understand the server's messages to generate input. Lucky for you, there is a [sister project](https://github.com/InspiredGoat/MobileadoraClient) to this repository which implements the specification. All you need to do is download that source code, host it on an http server and profit.
 
 The library is made of two parts:
 
